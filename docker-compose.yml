@@ -7,7 +7,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-greenhouse}
       POSTGRES_DB: ${POSTGRES_DB:-greenhouse}
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "${POSTGRES_PORT:-5433}:5432"
     volumes:
       - greenhouse_pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -15,6 +15,28 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+
+  backend:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-greenhouse}:${POSTGRES_PASSWORD:-greenhouse}@postgres:5432/${POSTGRES_DB:-greenhouse}
+      CORS_ORIGINS: http://localhost:5173
+      API_HOST: 0.0.0.0
+      API_PORT: 8000
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    environment:
+      VITE_API_BASE_URL: http://localhost:8000
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
 
 volumes:
   greenhouse_pgdata:
