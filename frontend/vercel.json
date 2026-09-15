@@ -1,0 +1,16 @@
+{
+  "rewrites": [
+    {
+      "source": "/health",
+      "destination": "https://smart-greenhouse-api-2wsf.onrender.com/health"
+    },
+    {
+      "source": "/api/:path*",
+      "destination": "https://smart-greenhouse-api-2wsf.onrender.com/api/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
