@@ -19,6 +19,30 @@ export type DeviceDto = {
   default_config: Record<string, unknown>;
 };
 
+export type ZoneConfigRequest = {
+  name: string;
+  moisture_threshold_low: number;
+  moisture_threshold_high: number;
+  schedule: Record<string, unknown>;
+};
+
+export type LocationConfigRequest = {
+  location_name: string;
+  zones: ZoneConfigRequest[];
+};
+
+export type LocationConfigDto = {
+  location: { id: string; name: string };
+  zones: {
+    id: string;
+    location_id: string;
+    name: string;
+    moisture_threshold_low: number;
+    moisture_threshold_high: number;
+    schedule: Record<string, unknown>;
+  }[];
+};
+
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "";
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
@@ -27,7 +51,22 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     headers: { "Content-Type": "application/json", ...options?.headers },
   });
   if (!response.ok) {
-    throw new Error(`Request failed: ${response.status}`);
+    const payload = (await response.json().catch(() => null)) as { detail?: unknown } | null;
+    const detail = payload?.detail;
+    const message =
+      typeof detail === "string"
+        ? detail
+        : Array.isArray(detail)
+          ? detail
+              .map((item) => {
+                if (typeof item !== "object" || item === null || !("msg" in item)) return null;
+                const location = "loc" in item && Array.isArray(item.loc) ? `${item.loc.join(".")}: ` : "";
+                return `${location}${String(item.msg)}`;
+              })
+              .filter((item): item is string => item !== null)
+              .join("; ") || `Request failed: ${response.status}`
+          : `Request failed: ${response.status}`;
+    throw new Error(message);
   }
   return response.json() as Promise<T>;
 }
@@ -63,4 +102,15 @@ export function provisionDeviceFamily(family: DeviceFamily): Promise<DeviceDto[]
   return request<DeviceDto[]>(`/api/devices/provision?${params.toString()}`, {
     method: "POST",
   });
+}
+
+export function createLocationConfig(payload: LocationConfigRequest): Promise<LocationConfigDto> {
+  return request<LocationConfigDto>("/api/locations/config", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function fetchLocationConfig(locationId: string): Promise<LocationConfigDto> {
+  return request<LocationConfigDto>(`/api/locations/${encodeURIComponent(locationId)}/config`);
 }

@@ -1,8 +1,8 @@
 import { DeviceList } from "../components/devices/DeviceList";
+import { LocationConfigWizard } from "../components/config/LocationConfigWizard";
 import { SensorList } from "../features/sensors/SensorList";
 
 const sections = [
-  { id: "config", title: "Configuration", description: "Device and threshold settings" },
   { id: "automation", title: "Automation", description: "Rules and schedules" },
   { id: "overview", title: "Overview", description: "System status summary" },
   { id: "controls", title: "Controls", description: "Manual actuator control" },
@@ -29,6 +29,14 @@ export function DashboardPage() {
           <h2 className="mb-2 text-lg font-semibold text-slate-900">Devices</h2>
           <p className="text-slate-500">Provision and browse a coherent device family</p>
           <DeviceList />
+        </article>
+        <article
+          id="config"
+          className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow"
+        >
+          <h2 className="mb-2 text-lg font-semibold text-slate-900">Configuration</h2>
+          <p className="text-slate-500">Build a validated location configuration with zones</p>
+          <LocationConfigWizard />
         </article>
         {sections.map((section) => (
           <article
