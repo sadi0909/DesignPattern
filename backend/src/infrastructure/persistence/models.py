@@ -11,7 +11,10 @@ from .base import Base
 
 class DeviceRow(Base):
     __tablename__ = "devices"
-    __table_args__ = (Index("ix_devices_role", "role"),)
+    __table_args__ = (
+        Index("ix_devices_role", "role"),
+        Index("ix_devices_family", "device_family"),
+    )
 
     id: Mapped[UUID] = mapped_column(
         PostgreSQLUUID(as_uuid=True),
@@ -20,6 +23,9 @@ class DeviceRow(Base):
     )
     device_type: Mapped[str] = mapped_column(String(64), nullable=False)
     role: Mapped[str] = mapped_column(String(32), nullable=False, server_default=text("'sensor'"))
+    device_family: Mapped[str] = mapped_column(
+        String(32), nullable=False, default="simulation", server_default=text("'simulation'")
+    )
     display_name: Mapped[str | None] = mapped_column(String(128), nullable=True)
     default_config: Mapped[dict[str, object]] = mapped_column(
         JSONB, nullable=False, default=dict, server_default=text("'{}'::jsonb")

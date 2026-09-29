@@ -7,6 +7,18 @@ export type SensorDto = {
   default_config: Record<string, unknown>;
 };
 
+export type DeviceFamily = "simulation" | "edge";
+export type DeviceRole = "sensor" | "actuator";
+
+export type DeviceDto = {
+  id: string;
+  device_type: string;
+  role: DeviceRole;
+  device_family: string;
+  display_name: string;
+  default_config: Record<string, unknown>;
+};
+
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "";
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
@@ -32,5 +44,23 @@ export function createSensor(type: "moisture" | "light", displayName?: string): 
   return request<SensorDto>("/api/sensors", {
     method: "POST",
     body: JSON.stringify({ type, display_name: displayName ?? null }),
+  });
+}
+
+export function fetchDevices(filters: {
+  family?: DeviceFamily;
+  role?: DeviceRole;
+} = {}): Promise<DeviceDto[]> {
+  const params = new URLSearchParams();
+  if (filters.family) params.set("family", filters.family);
+  if (filters.role) params.set("role", filters.role);
+  const query = params.size > 0 ? `?${params.toString()}` : "";
+  return request<DeviceDto[]>(`/api/devices${query}`);
+}
+
+export function provisionDeviceFamily(family: DeviceFamily): Promise<DeviceDto[]> {
+  const params = new URLSearchParams({ family });
+  return request<DeviceDto[]>(`/api/devices/provision?${params.toString()}`, {
+    method: "POST",
   });
 }

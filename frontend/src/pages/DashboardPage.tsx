@@ -1,3 +1,4 @@
+import { DeviceList } from "../components/devices/DeviceList";
 import { SensorList } from "../features/sensors/SensorList";
 
 const sections = [
@@ -20,6 +21,14 @@ export function DashboardPage() {
           <h2 className="mb-2 text-lg font-semibold text-slate-900">Sensors</h2>
           <p className="text-slate-500">Create and monitor greenhouse sensors</p>
           <SensorList />
+        </article>
+        <article
+          id="devices"
+          className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow"
+        >
+          <h2 className="mb-2 text-lg font-semibold text-slate-900">Devices</h2>
+          <p className="text-slate-500">Provision and browse a coherent device family</p>
+          <DeviceList />
         </article>
         {sections.map((section) => (
           <article
