@@ -7,6 +7,14 @@ export type SensorDto = {
   default_config: Record<string, unknown>;
 };
 
+export type ReadingDto = {
+  device_id: string;
+  value: number;
+  unit: string;
+  source: string;
+  recorded_at: string;
+};
+
 export type DeviceFamily = "simulation" | "edge";
 export type DeviceRole = "sensor" | "actuator";
 
@@ -84,6 +92,18 @@ export function createSensor(type: "moisture" | "light", displayName?: string): 
     method: "POST",
     body: JSON.stringify({ type, display_name: displayName ?? null }),
   });
+}
+
+export function readSensor(sensorId: string): Promise<ReadingDto> {
+  return request<ReadingDto>(`/api/sensors/${encodeURIComponent(sensorId)}/read`, {
+    method: "POST",
+  });
+}
+
+export function fetchSensorReadings(sensorId: string, limit = 20): Promise<ReadingDto[]> {
+  return request<ReadingDto[]>(
+    `/api/sensors/${encodeURIComponent(sensorId)}/readings?limit=${limit}`,
+  );
 }
 
 export function fetchDevices(filters: {

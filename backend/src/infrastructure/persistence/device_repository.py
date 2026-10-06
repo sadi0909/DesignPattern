@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -44,6 +46,10 @@ class DeviceRepository:
         for row in rows:
             self._session.refresh(row)
         return [self._to_device(row) for row in rows]
+
+    def get_device(self, device_id: UUID) -> Device | None:
+        row = self._session.get(DeviceRow, device_id)
+        return None if row is None else self._to_device(row)
 
     def list_devices(
         self,

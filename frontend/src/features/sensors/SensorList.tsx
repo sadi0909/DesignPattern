@@ -1,5 +1,105 @@
 import { useEffect, useState } from "react";
-import { createSensor, fetchSensors, type SensorDto } from "../../services/api";
+import {
+  createSensor,
+  fetchSensorReadings,
+  fetchSensors,
+  readSensor,
+  type ReadingDto,
+  type SensorDto,
+} from "../../services/api";
+
+function sourceBadgeClasses(source: string): string {
+  return source === "vendor"
+    ? "bg-amber-100 text-amber-800"
+    : "bg-emerald-100 text-emerald-800";
+}
+
+function SensorCard({ sensor }: { sensor: SensorDto }) {
+  const [latest, setLatest] = useState<ReadingDto | null>(null);
+  const [loadingLatest, setLoadingLatest] = useState(true);
+  const [reading, setReading] = useState(false);
+  const [readError, setReadError] = useState<string | null>(null);
+
+  // Load the last persisted reading so history survives a page refresh.
+  useEffect(() => {
+    let cancelled = false;
+    async function loadLatest() {
+      try {
+        const history = await fetchSensorReadings(sensor.id, 1);
+        if (!cancelled) {
+          setLatest(history[0] ?? null);
+        }
+      } catch {
+        // Card stays usable even when the history fetch fails.
+      } finally {
+        if (!cancelled) {
+          setLoadingLatest(false);
+        }
+      }
+    }
+    void loadLatest();
+    return () => {
+      cancelled = true;
+    };
+  }, [sensor.id]);
+
+  async function handleReadNow() {
+    try {
+      setReading(true);
+      setReadError(null);
+      setLatest(await readSensor(sensor.id));
+    } catch (error) {
+      setReadError(error instanceof Error ? error.message : "Unable to read sensor.");
+    } finally {
+      setReading(false);
+    }
+  }
+
+  return (
+    <li className="rounded-md border border-slate-200 bg-white p-3">
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <p className="font-medium text-slate-800">{sensor.display_name}</p>
+          <p className="text-xs text-slate-500">{sensor.device_type}</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => void handleReadNow()}
+          disabled={reading}
+          className="rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+        >
+          {reading ? "Reading…" : "Read now"}
+        </button>
+      </div>
+
+      {readError && <p className="mt-2 text-sm text-red-600">{readError}</p>}
+
+      {loadingLatest ? (
+        <p className="mt-2 text-sm text-slate-500">Loading latest reading…</p>
+      ) : latest ? (
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <span className="text-sm font-semibold text-slate-800">
+            {latest.value} {latest.unit}
+          </span>
+          <span
+            className={`rounded-full px-2 py-0.5 text-xs font-medium ${sourceBadgeClasses(latest.source)}`}
+          >
+            {latest.source}
+          </span>
+          <span className="text-xs text-slate-500">
+            {new Date(latest.recorded_at).toLocaleString()}
+          </span>
+        </div>
+      ) : (
+        <p className="mt-2 text-sm text-slate-500">No readings yet. Use “Read now”.</p>
+      )}
+
+      <pre className="mt-2 overflow-x-auto text-xs text-slate-600">
+        {JSON.stringify(sensor.default_config, null, 2)}
+      </pre>
+    </li>
+  );
+}
 
 export function SensorList() {
   const [sensors, setSensors] = useState<SensorDto[]>([]);
@@ -63,13 +163,7 @@ export function SensorList() {
       ) : (
         <ul className="space-y-2">
           {sensors.map((sensor) => (
-            <li key={sensor.id} className="rounded-md border border-slate-200 bg-white p-3">
-              <p className="font-medium text-slate-800">{sensor.display_name}</p>
-              <p className="text-xs text-slate-500">{sensor.device_type}</p>
-              <pre className="mt-2 overflow-x-auto text-xs text-slate-600">
-                {JSON.stringify(sensor.default_config, null, 2)}
-              </pre>
-            </li>
+            <SensorCard key={sensor.id} sensor={sensor} />
           ))}
         </ul>
       )}

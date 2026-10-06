@@ -92,3 +92,29 @@ class ZoneRow(Base):
         JSONB, nullable=False, default=dict, server_default=text("'{}'::jsonb")
     )
     location: Mapped[LocationRow] = relationship(back_populates="zones")
+
+
+class ReadingRow(Base):
+    __tablename__ = "sensor_readings"
+    __table_args__ = (
+        Index(
+            "ix_sensor_readings_device_id_recorded_at",
+            "device_id",
+            text("recorded_at DESC"),
+        ),
+    )
+
+    id: Mapped[UUID] = mapped_column(
+        PostgreSQLUUID(as_uuid=True),
+        primary_key=True,
+        server_default=text("gen_random_uuid()"),
+    )
+    device_id: Mapped[UUID] = mapped_column(
+        PostgreSQLUUID(as_uuid=True),
+        ForeignKey("devices.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    value: Mapped[float] = mapped_column(Numeric(12, 4), nullable=False)
+    unit: Mapped[str] = mapped_column(String(16), nullable=False)
+    source: Mapped[str] = mapped_column(String(16), nullable=False)
+    recorded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

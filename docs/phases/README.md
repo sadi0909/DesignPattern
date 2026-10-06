@@ -10,8 +10,8 @@ This project grows a smart greenhouse control system one phase at a time. Each p
 | 2 | Factory Method — sensor creators, `devices` table, `/api/sensors` | ✅ Done |
 | 3 | Abstract Factory — coherent device families (simulation vs edge) | ✅ Done |
 | 4 | Builder — stepwise location/zone configuration | ✅ Done |
-| 5 | Adapter — sensor/actuator ports, adapters, `sensor_readings` | ⬜ Next |
-| 6 | Strategy — interchangeable automation policies | ⬜ |
+| 5 | Adapter — sensor/actuator ports, adapters, `sensor_readings` | ✅ Done |
+| 6 | Strategy — interchangeable automation policies | ⬜ Next |
 | 7 | Facade — single overview operation | ⬜ |
 | 8 | State — actuator lifecycle with guarded transitions | ⬜ |
 | 9 | Decorator — logging/policies wrapped around actuator execution | ⬜ |
