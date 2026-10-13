@@ -1,5 +1,6 @@
 import { useState } from "react";
 import {
+  ACTIVE_LOCATION_STORAGE_KEY,
   createLocationConfig,
   type LocationConfigDto,
   type LocationConfigRequest,
@@ -132,7 +133,9 @@ export function LocationConfigWizard() {
 
     try {
       setSaving(true);
-      setCreatedConfig(await createLocationConfig(request));
+      const config = await createLocationConfig(request);
+      window.localStorage.setItem(ACTIVE_LOCATION_STORAGE_KEY, config.location.id);
+      setCreatedConfig(config);
     } catch (error) {
       setApiError(error instanceof Error ? error.message : "Unable to save this location configuration.");
     } finally {

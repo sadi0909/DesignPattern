@@ -134,3 +134,39 @@ export function createLocationConfig(payload: LocationConfigRequest): Promise<Lo
 export function fetchLocationConfig(locationId: string): Promise<LocationConfigDto> {
   return request<LocationConfigDto>(`/api/locations/${encodeURIComponent(locationId)}/config`);
 }
+
+// Remembers the location the configuration wizard last saved, so the strategy panel can use it.
+export const ACTIVE_LOCATION_STORAGE_KEY = "greenhouse.activeLocationId";
+
+export type AutomationRuleDto = {
+  location_id: string;
+  strategy_key: string;
+  is_default: boolean;
+  updated_at: string | null;
+  available_strategies: string[];
+};
+
+export type RecommendationDto = {
+  location_id: string;
+  strategy_key: string;
+  action: string;
+  reason: string;
+};
+
+export function fetchAutomationRule(locationId: string): Promise<AutomationRuleDto> {
+  return request<AutomationRuleDto>(`/api/locations/${encodeURIComponent(locationId)}/automation`);
+}
+
+export function saveAutomationStrategy(locationId: string, strategyKey: string): Promise<AutomationRuleDto> {
+  return request<AutomationRuleDto>(`/api/locations/${encodeURIComponent(locationId)}/automation`, {
+    method: "PUT",
+    body: JSON.stringify({ strategy_key: strategyKey }),
+  });
+}
+
+export function evaluateAutomation(locationId: string): Promise<RecommendationDto> {
+  return request<RecommendationDto>(
+    `/api/locations/${encodeURIComponent(locationId)}/automation/evaluate`,
+    { method: "POST" },
+  );
+}

@@ -1,9 +1,9 @@
 import { DeviceList } from "../components/devices/DeviceList";
 import { LocationConfigWizard } from "../components/config/LocationConfigWizard";
+import { StrategyPanel } from "../features/automation/StrategyPanel";
 import { SensorList } from "../features/sensors/SensorList";
 
 const sections = [
-  { id: "automation", title: "Automation", description: "Rules and schedules" },
   { id: "overview", title: "Overview", description: "System status summary" },
   { id: "controls", title: "Controls", description: "Manual actuator control" },
   { id: "events", title: "Events", description: "Alerts and activity log" },
@@ -37,6 +37,14 @@ export function DashboardPage() {
           <h2 className="mb-2 text-lg font-semibold text-slate-900">Configuration</h2>
           <p className="text-slate-500">Build a validated location configuration with zones</p>
           <LocationConfigWizard />
+        </article>
+        <article
+          id="automation"
+          className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow"
+        >
+          <h2 className="mb-2 text-lg font-semibold text-slate-900">Automation</h2>
+          <p className="text-slate-500">Choose a strategy per location and evaluate its recommendation</p>
+          <StrategyPanel />
         </article>
         {sections.map((section) => (
           <article
