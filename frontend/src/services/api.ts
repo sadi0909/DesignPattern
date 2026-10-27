@@ -135,6 +135,18 @@ export function fetchLocationConfig(locationId: string): Promise<LocationConfigD
   return request<LocationConfigDto>(`/api/locations/${encodeURIComponent(locationId)}/config`);
 }
 
+export type LocationOverviewDto = {
+  location: { id: string; name: string };
+  device_counts: { sensor: number; actuator: number };
+  latest_readings: { device_id: string; value: number; unit: string; recorded_at: string }[];
+  strategy_key: string | null;
+  last_recommendation: { action: string; reason: string } | null;
+};
+
+export function fetchOverview(locationId: string): Promise<LocationOverviewDto> {
+  return request<LocationOverviewDto>(`/api/locations/${encodeURIComponent(locationId)}/overview`);
+}
+
 // Remembers the location the configuration wizard last saved, so the strategy panel can use it.
 export const ACTIVE_LOCATION_STORAGE_KEY = "greenhouse.activeLocationId";
 

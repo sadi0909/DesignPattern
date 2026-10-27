@@ -1,11 +1,11 @@
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from domain.sensors.reading import Reading
 
-from .models import ReadingRow
+from .models import DeviceRow, ReadingRow
 
 
 class ReadingRepository:
@@ -38,6 +38,28 @@ class ReadingRepository:
             .where(ReadingRow.device_id == device_id)
             .order_by(ReadingRow.recorded_at.desc(), ReadingRow.id.desc())
             .limit(limit)
+        ).all()
+        return [self._to_domain(row) for row in rows]
+
+    def latest_per_sensor(self) -> list[Reading]:
+        """One latest reading per sensor in one query; devices are not location-bound."""
+        ranked = (
+            select(
+                ReadingRow.id.label("reading_id"),
+                func.row_number().over(
+                    partition_by=ReadingRow.device_id,
+                    order_by=(ReadingRow.recorded_at.desc(), ReadingRow.id.desc()),
+                ).label("rank"),
+            )
+            .join(DeviceRow, DeviceRow.id == ReadingRow.device_id)
+            .where(DeviceRow.role == "sensor")
+            .subquery()
+        )
+        rows = self._session.scalars(
+            select(ReadingRow)
+            .join(ranked, ranked.c.reading_id == ReadingRow.id)
+            .where(ranked.c.rank == 1)
+            .order_by(ReadingRow.recorded_at.desc(), ReadingRow.id.desc())
         ).all()
         return [self._to_domain(row) for row in rows]
 

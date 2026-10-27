@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from domain.devices.entity import Device
@@ -64,6 +64,13 @@ class DeviceRepository:
             query = query.where(DeviceRow.role == role)
         rows = self._session.scalars(query.order_by(DeviceRow.created_at.desc())).all()
         return [self._to_device(row) for row in rows]
+
+    def count_by_role(self) -> dict[str, int]:
+        """Count globally: the current device schema has no location association."""
+        rows = self._session.execute(
+            select(DeviceRow.role, func.count()).group_by(DeviceRow.role)
+        ).all()
+        return {role: count for role, count in rows}
 
     def list_sensors(self) -> list[Sensor]:
         devices = self.list_devices(role="sensor")

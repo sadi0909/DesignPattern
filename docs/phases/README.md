@@ -12,7 +12,7 @@ This project grows a smart greenhouse control system one phase at a time. Each p
 | 4 | Builder — stepwise location/zone configuration | ✅ Done |
 | 5 | Adapter — sensor/actuator ports, adapters, `sensor_readings` | ✅ Done |
 | 6 | Strategy — interchangeable automation policies | ✅ Done |
-| 7 | Facade — single overview operation | ⬜ |
+| 7 | Facade — single overview operation | ⚠️ Partial — device data cannot yet be scoped by location |
 | 8 | State — actuator lifecycle with guarded transitions | ⬜ |
 | 9 | Decorator — logging/policies wrapped around actuator execution | ⬜ |
 | 10 | Command — encapsulated actuator actions, command history | ⬜ |

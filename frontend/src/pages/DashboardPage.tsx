@@ -2,9 +2,9 @@ import { DeviceList } from "../components/devices/DeviceList";
 import { LocationConfigWizard } from "../components/config/LocationConfigWizard";
 import { StrategyPanel } from "../features/automation/StrategyPanel";
 import { SensorList } from "../features/sensors/SensorList";
+import { OverviewPanel } from "../features/overview/OverviewPanel";
 
 const sections = [
-  { id: "overview", title: "Overview", description: "System status summary" },
   { id: "controls", title: "Controls", description: "Manual actuator control" },
   { id: "events", title: "Events", description: "Alerts and activity log" },
 ];
@@ -14,6 +14,11 @@ export function DashboardPage() {
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <h1 className="mb-8 text-3xl font-bold text-slate-900">Dashboard</h1>
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <article id="overview" className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="mb-2 text-lg font-semibold text-slate-900">Overview</h2>
+          <p className="text-slate-500">Location status summary</p>
+          <OverviewPanel />
+        </article>
         <article
           id="sensors"
           className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow"
