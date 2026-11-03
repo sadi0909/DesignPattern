@@ -1,0 +1,97 @@
+# Phase 6 — Strategy questions
+
+**Pattern / focus:** Strategy.
+
+**Read first:** [Guide 06](../../materials/guides/06-strategy.md) · [Requirements](requirements.md)
+
+## How to answer
+
+- Use your own wording. Do not paste teaching-example types (for example shipping quotes) as if they were your greenhouse classes.
+- When a question asks about *this application*, refer to irrigation (or lighting) policies, location context, and the automation API from the lab.
+- Short answers are fine when the question is narrow. Write a few sentences when it asks you to explain or compare.
+
+## A. Pattern
+
+1. State the intent of Strategy in plain language. How does the **context** use a strategy, and why must “choose which algorithm” stay separate from “run the algorithm”?
+
+**Answer:** Strategy lets one algorithm be swapped for another without changing the code that uses it. In this lab the context is `AutomationService`, and it contains no irrigation rule of its own. An evaluation loads the saved `strategy_key` for the location, resolves a strategy object with `get_strategy(key)`, and calls `decide(context)` on it. The service keeps the job of gathering inputs: the location's zones, the latest moisture reading, and the percent-to-fraction conversion.
+
+Choosing and running are kept apart on purpose. `get_strategy` answers “which algorithm?” and only validates: an unregistered key raises `UnknownStrategyError`. `set_strategy` runs that check before it touches the database, so a bad key is never written. `decide` answers “what should happen?” and computes only from the context it receives, with no reads or writes. Because the steps are distinct, each can be tested on its own.
+
+The separation is only real if it survives change. Adding a third strategy means writing one class with a `key` and a `decide` method, then adding it to the registry. `AutomationService` and the router would not change. That is the test this design has to pass.
+
+2. Name the participants (**strategy**, **concrete strategies**, **context**, **client**). What goes wrong when all policies live as `if/elif` inside the context (or inside an HTTP router)?
+
+**Answer:** The participants are the `AutomationStrategy` interface, the concrete `ConservativeMoistureStrategy` and `AggressiveMoistureStrategy`, the context that gathers inputs and delegates (`AutomationService`), and the client that picks a strategy (the saved per-location rule, set through the API).
+
+When policies live as `if/elif` branches, each new policy edits the same lines, so changes collide and a bug in one branch can break others. The branching then spreads into the router, which ends up holding business rules that belong in the domain. Testing gets harder too: checking one policy's behavior means going through the HTTP layer or building the whole service, rather than calling one class with plain numbers. Policy names also leak into the API contract, so renaming or adding a policy becomes a client-visible change.
+
+In this lab the router only parses requests, calls `AutomationService`, and maps `UnknownStrategyError` to 400 and `LocationNotFoundError` to 404. No `if strategy ==` appears in it. The two policies live in separate classes in `domain/automation/strategy.py`.
+
+3. When should you use Strategy, and when should you skip it (one algorithm only; or the variation is a **lifecycle mode** rather than a chosen policy)?
+
+**Answer:** Use Strategy when several interchangeable algorithms answer the same question and the client chooses which applies. Conservative and aggressive irrigation both answer “should this zone be watered?”, and an operator picks one per location. Either policy can replace the other without changing the caller.
+
+Skip Strategy when there is only one algorithm, because the indirection adds code with no benefit. Skip it also when the variation is a lifecycle: the object moves between modes as events happen, for example an actuator going from closed to open to faulted. That is a State problem (Phase 8), because the object changes its own state rather than a client choosing a policy.
+
+A single threshold check is fine as a plain function. Introduce Strategy when the second policy appears, not before.
+
+## B. This phase of the application
+
+4. In this lab, what does a strategy’s `decide(context)` return (action + reason)? Give a concrete difference you implemented (or were required to implement) between **conservative** and **aggressive** on the **same** moisture reading and zone thresholds.
+
+**Answer:** `decide` returns a `Recommendation` with two fields. `action` is `irrigate` or `wait`. `reason` is a human-readable sentence that names the zone and the numbers used. The reason is part of the result on purpose, so an operator can see why the system decided.
+
+The two strategies differ only inside the band between the low and high thresholds. With a zone band of 0.25–0.45 and moisture 0.40, conservative waits with the reason “within 0.25–0.45”, because it irrigates only below the low threshold. Aggressive irrigates with the reason “below the high threshold 0.45”, because it irrigates below the high threshold. Below 0.25 both irrigate, and at or above 0.45 both wait, so the difference shows only in the middle band.
+
+This is why the evaluate endpoint gives different answers for the same reading after a strategy change, which is the behavior the Phase 6 check requires.
+
+5. Where do the numbers in `LocationAutomationContext` (or your equivalent) come from? Why must strategies receive a plain context object, not SQLAlchemy rows or FastAPI types? Why are thresholds read from **zones**, not hardcoded in the strategy class?
+
+**Answer:** `LocationAutomationContext` is built in the application layer. Moisture comes from the newest `sensor_readings` row among moisture sensors, converted from percent (0–100) to a 0–1 fraction. Thresholds come from the location's zones, loaded through the location repository. The context holds the location id, the zone name, the moisture value, and the zone's low and high thresholds, all as plain values.
+
+Strategies receive a frozen dataclass rather than ORM rows or FastAPI request objects for three reasons. The first is dependency direction: the domain must not import SQLAlchemy or FastAPI, or the policies can't be used or tested without a web stack. The second is testability: a unit test can build a context from three numbers and assert on the result. The third is safety: an ORM object can lazy-load relationships or change mid-decision, while a frozen value cannot.
+
+Thresholds come from zones because the operator sets them per zone in Phase 4. A hardcoded constant would ignore those settings and force every zone into one band. There is one known gap: moisture is the newest reading across all moisture sensors, because devices aren't yet tied to a location. That is a limitation of the current data model, not a design choice.
+
+6. The active `strategy_key` is **persisted** per `location_id` (for example in `automation_rules`). Why must `POST .../automation/evaluate` use the **saved** key rather than a key the client sends only in that request? What happens on the next evaluate after the operator changes strategy but moisture stays the same?
+
+**Answer:** The key is part of the location's configuration, stored in `automation_rules` with one row per location. If the evaluate request could carry its own key, the answer would depend on which client asked, and the saved configuration would stop describing what the system does. The saved key is the single source of truth.
+
+Suppose the operator switches from conservative to aggressive and moisture stays at 0.40 against a band of 0.25–0.45. The next evaluate returns irrigate where it returned wait before, because the aggressive policy acts at any reading below the high threshold. The sensor didn't change; the policy did. The response echoes the `strategy_key` that was used, so every recommendation traces back to the policy that produced it.
+
+Switching is a single update of one row. The unique constraint on `location_id` guarantees one row per location, so there is never more than one active strategy at a time.
+
+7. Strategy **recommends** (irrigate / wait). It should not itself start a pump. Why keep **decide** separate from **execute**? Which later pattern is meant to carry out the action?
+
+**Answer:** `decide` is pure. It reads a context and returns a recommendation, so it can be unit-tested with numbers, logged, and reviewed without any hardware present. Executing an action changes the world: it opens a valve, spends water, and wears equipment. Keeping the two apart means a recommendation can be checked, overridden by an operator, rate-limited, or logged before anything moves.
+
+Mixing them creates the failure the separation prevents. A strategy that waters directly cannot be tested without an actuator, and a bad threshold would cause real water use with no chance to intervene.
+
+The pattern meant to carry out the action is Command (Phase 10). A command object wraps an actuator request, such as “open the valve for two minutes”, and can be queued, logged, and undone. It sits above the Phase 5 actuator adapter and below the recommendation, so the path is recommendation → command → actuator.
+
+## C. Compare, contrast, and scenarios
+
+8. Contrast Strategy with **State** (Phase 8). Both delegate to an object with the same shape. Who typically **changes** the active object, and is the variation a **policy** or a **lifecycle**?
+
+**Answer:** Both patterns delegate calls to a contained object that shares a method shape, which is why they look alike. The difference is who changes the active object, and why.
+
+In Strategy, the client chooses the object, usually once, based on configuration. An operator selects a policy for a location. The choices are peers: they don't know about each other and don't transition into one another. The variation is a policy, answering “how should we decide?”
+
+In State, the object itself moves between states as events occur, and each state knows which transitions are legal. An actuator goes from closed to open to faulted, and an open actuator cannot be opened again. The variation is a lifecycle, answering “what can happen now, given where we are?”
+
+9. Contrast Strategy with **Adapter** (Phase 5) and with **Builder** (Phase 4). Which one translates a foreign API, which one assembles a valid aggregate, and which one swaps an algorithm?
+
+**Answer:** Adapter translates a foreign interface into the one the application expects. In this lab a vendor raw payload with nested fields and scaled integers becomes a normalized `Reading`. Its job is shape conversion, so business code never sees the vendor's format.
+
+Builder assembles a valid aggregate step by step. `LocationConfigBuilder` collects a name and zones, and `build()` validates them: names are required and unique, thresholds fall between 0 and 1, and low must be below high. The builder guarantees that only a valid configuration exists. It translates nothing and chooses between no alternatives.
+
+Strategy swaps an algorithm. The conservative and aggressive `decide` methods implement the same contract with different rules, and the caller picks one. In short: Adapter translates, Builder assembles, Strategy swaps.
+
+10. A classmate writes one “mega-strategy” that still contains `if conservative` / `if aggressive` inside a single class. Another strategy class calls the actuator adapter to water immediately. Explain why each is a trap.
+
+**Answer:** The mega-strategy repeats the mistake Strategy exists to fix, just moved into one class. Each new policy adds another branch, every change touches the same method, and tests must cover every combination of branches. Splitting into one class per policy behind `decide` makes each rule testable on its own and lets a new policy arrive without editing existing ones.
+
+A strategy that calls the actuator adapter to water immediately collapses the separation between recommending and acting. It cannot be tested without hardware, skips the review or rate limit an operator would expect, and turns a bad threshold directly into water use. The correct design is for strategies to return a recommendation, with the action going through a Command object that can be logged, queued, and blocked.
+
+Both traps share a root cause: business decisions are mixed with other concerns. In one case the concerns are other policies, and in the other they are physical side effects. Keeping each concern in its own object is what makes the system safe to change.

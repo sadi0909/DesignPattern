@@ -71,6 +71,8 @@ def test_openapi_documents_device_dto_and_routes():
         "device_family",
         "display_name",
         "default_config",
+        "state",
+        "allowed_commands",
     }
 
 

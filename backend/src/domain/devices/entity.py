@@ -10,3 +10,4 @@ class Device:
     device_family: str
     display_name: str
     default_config: dict[str, object] = field(default_factory=dict)
+    state: str | None = None

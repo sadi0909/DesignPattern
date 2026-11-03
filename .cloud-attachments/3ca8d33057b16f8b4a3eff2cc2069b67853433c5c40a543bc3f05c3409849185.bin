@@ -1,0 +1,57 @@
+# Phase 5 — Adapter questions
+
+**Pattern / focus:** Adapter.
+
+**Read first:** [Guide 05](../../materials/guides/05-adapter.md) · [Requirements](requirements.md)
+
+## How to answer
+
+- Use your own wording. Do not paste teaching-example types (for example a legacy XML calendar client) as if they were your greenhouse classes.
+- When a question asks about *this application*, refer to sensor ports, adapters, readings, and `sensor_readings` from the lab.
+- Short answers are fine when the question is narrow. Write a few sentences when it asks you to explain or compare.
+
+## A. Pattern
+
+1. State the intent of Adapter in plain language. What problem appears when business code speaks a vendor or legacy protocol (odd field names, units, XML, status codes) directly?
+
+**Answer:** Adapter makes one interface look like another, so two classes with incompatible interfaces can work together without either side being rewritten. In this lab the vendor stub returns a raw payload with odd field names (`reading_tenths`, `uom_code`), scaled integers, and epoch milliseconds, while the simulation driver produces plain values. If business code speaks those dialects directly, every caller ends up parsing payloads, converting units, and translating timestamps by hand; a vendor upgrade or a second vendor then means rewriting services instead of adding one small translator class.
+
+2. Name the participants (**target / port**, **adaptee**, **adapter**, **client**). What does the adapter translate, and what must it **not** decide (business policy)?
+
+**Answer:** Target/port: `SensorPort` and `ActuatorPort` — the interfaces the application expects. Adaptee: the foreign driver being wrapped, here the mocked vendor SDK payload and the simulation driver logic. Adapter: `VendorStubSensorAdapter` and `SimulationSensorAdapter`, the translators. Client: `ReadingService` and the sensors router, which only ever see the port. The adapter translates shape and protocol only: field names, scaling (deci-percent to percent, tenths of kilolux to lux), vendor unit codes, and timestamps. It must **not** decide business policy — for example “if moisture is below the zone threshold then water” is domain logic that belongs to Strategy (Phase 6), not to a driver wrapper.
+
+3. GoF distinguishes an **object adapter** (composition) from a **class adapter** (inheritance). Which does modern code prefer, and why?
+
+**Answer:** Modern code prefers the object adapter. The adapter wraps (or stands in for) the adaptee and implements the port through composition, which is looser: it works with any adaptee instance or a stub, it can hold several adaptees, and swapping or mocking the wrapped object is trivial. A class adapter uses multiple inheritance to adapt at the type level, which permanently couples the adapter to one adaptee class, complicates testing, and is awkward in languages without multiple inheritance. The lab's adapters are object adapters — `VendorStubSensorAdapter.read()` wraps the stubbed vendor call and even keeps its `translate` step a pure function.
+
+## B. This phase of the application
+
+4. What is `SensorPort` in this lab, and what normalized value type (for example `Reading`) do adapters return? Why do application services depend on the port rather than on a simulation driver or vendor SDK?
+
+**Answer:** `SensorPort` is the lab's application-facing sensor interface (`backend/src/domain/sensors/ports.py`): one operation, `read(device) -> Reading`. Every adapter returns the same normalized value object `Reading` (`device_id`, `value`, `unit`, `source`, timezone-aware `recorded_at`). Application services depend on the port so that the driver behind it can change without touching business code: the vendor SDK can be swapped, the simulation can be replaced by real hardware later, and tests can pass a fake, while `ReadingService`, the routes, and the UI stay untouched. Depending on the port also keeps vendor-shaped imports out of the application layer entirely.
+
+5. You need **at least two** adapters (simulation and a vendor stub) with **different raw shapes** but the same normalized reading. Why is the different raw shape the point of the exercise? How does the `source` field on a reading show which adapter produced it?
+
+**Answer:** If both drivers already produced the domain shape, there would be nothing to translate and no Adapter to write. The exercise only proves something when the raw shapes disagree with the domain and with each other — the vendor stub returns a nested payload (`sample.reading_tenths`, `uom_code` of `PCT`/`KLX`, `captured_epoch_ms`), while the simulation driver produces a plain plausible value — yet both must land in the identical `Reading`. That is exactly the translation boundary Adapter creates. Each adapter stamps its own `source` (`"simulation"` or `"vendor"`) on every reading, so each row of `sensor_readings` records its provenance and the UI can show a badge telling mocked vendor data apart from simulated data.
+
+6. Readings are **appended** to `sensor_readings` (history grows). Why not keep only the latest value in memory or overwrite a single row? Which later phase consumes this history?
+
+**Answer:** A single in-memory value disappears on every restart, is invisible to other processes, and overwriting one row destroys the trail. History is what makes the data useful: trends and charts need many points, a single reading says nothing about whether moisture is falling, and an audit trail shows what the system saw and when. The table is indexed on `(device_id, recorded_at DESC)` so “latest per device” stays cheap while history grows. Phase 6 (Strategy) consumes this history — policies evaluate recent persisted readings against the zone thresholds from Phase 4; Phase 11 (Observer) will publish `reading.created` from the same pipeline, and optional Phase 13 charts query `sensor_readings` directly.
+
+7. `POST /api/sensors/{id}/read` runs an adapter, persists, and returns a DTO. What HTTP status is appropriate when the device is missing versus when the adapter fails? Why must the router never see vendor-shaped types?
+
+**Answer:** A missing device is a request for a resource that does not exist → **404** (mapped from `DeviceNotFoundError`). An adapter failure — malformed vendor payload, unknown vendor unit code — is a bad request against a device that does exist → **400** with a detail message (mapped from `SensorReadError`). A successful read creates and stores a reading row, so **201** is appropriate. The router must never see vendor-shaped types because the port exists precisely to confine vendor dialects to the adapters: if the HTTP layer parsed `reading_tenths` or XML, the translation boundary would leak upward and swapping vendors would mean rewriting route handlers instead of adding one adapter.
+
+## C. Compare, contrast, and scenarios
+
+8. Contrast Adapter with **Facade**. Adapter changes the **shape** of an existing interface; Facade simplifies **how to use** a subsystem. Give a greenhouse-shaped example of each (Adapter this phase; Facade in Phase 7).
+
+**Answer:** Adapter translates between incompatible interfaces — it wraps one adaptee and presents one port, changing the shape of the data and the calls. Facade leaves the subsystem's interfaces alone and offers one simpler entry point in front of many classes. Greenhouse example (Adapter, this phase): `VendorStubSensorAdapter` makes the vendor's raw sample look like `SensorPort.read() -> Reading`. Greenhouse example (Facade, Phase 7): an `overview()` operation behind `GET /api/overview` that gathers devices, latest readings, and location configuration in one call — behind it still sit the device, reading, and location services; it only makes them easier to use together. If the facade started reshaping incompatible data types, it would be doing Adapter's job.
+
+9. Contrast Adapter with **Decorator**. Both wrap an object. What is different about the interface they present to the client?
+
+**Answer:** The difference is the interface the wrapper presents. An adapter presents a **different** interface than the object it wraps — it translates one shape into another. A decorator presents the **same** interface as the object it wraps and only adds behavior while forwarding the call. In this lab `VendorStubSensorAdapter` exposes `SensorPort.read()` while the payload underneath has a foreign shape (Adapter). Phase 9 will wrap the Phase 5 `SimulationActuatorAdapter` with decorators that still expose `ActuatorPort.apply()` unchanged but add logging, timing, or retries around the call (Decorator).
+
+10. A classmate puts irrigation policy (“if moisture &lt; 0.3 then water”) inside the vendor adapter. Why is that a trap? Where should that decision live instead (later Strategy), and what should stay in the adapter?
+
+**Answer:** It is a trap because an adapter should only translate. A hard-coded “water below 0.3” rule buried in infrastructure ignores the per-zone thresholds that were validated and saved with the location configuration in Phase 4, it forces every policy change to be edited inside driver code, it has to be duplicated in both the simulation and vendor adapters, and it cannot be tested or swapped on its own. The decision belongs to domain policy chosen per zone or location — Phase 6 (Strategy) holds interchangeable policies that take persisted readings from `sensor_readings` and zone thresholds and decide what to do. What stays in the adapter: field mapping, unit conversion, timestamp translation, and for actuators applying a command to the driver — nothing more.

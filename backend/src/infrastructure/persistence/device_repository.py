@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from domain.devices.entity import Device
 from domain.sensors.entity import Sensor
 
-from .models import DeviceRow
+from .models import ActuatorStateRow, DeviceRow
 
 
 class DeviceRepository:
@@ -42,14 +42,26 @@ class DeviceRepository:
             for device in devices
         ]
         self._session.add_all(rows)
+        self._session.flush()
+        self._session.add_all(
+            ActuatorStateRow(device_id=row.id, state="idle")
+            for row in rows
+            if row.role == "actuator"
+        )
         self._session.commit()
         for row in rows:
             self._session.refresh(row)
-        return [self._to_device(row) for row in rows]
+        return [
+            self._to_device(row, "idle" if row.role == "actuator" else None) for row in rows
+        ]
 
     def get_device(self, device_id: UUID) -> Device | None:
-        row = self._session.get(DeviceRow, device_id)
-        return None if row is None else self._to_device(row)
+        row = self._session.execute(
+            select(DeviceRow, ActuatorStateRow.state)
+            .outerjoin(ActuatorStateRow, ActuatorStateRow.device_id == DeviceRow.id)
+            .where(DeviceRow.id == device_id)
+        ).one_or_none()
+        return None if row is None else self._to_device(*row)
 
     def list_devices(
         self,
@@ -57,13 +69,15 @@ class DeviceRepository:
         device_family: str | None = None,
         role: str | None = None,
     ) -> list[Device]:
-        query = select(DeviceRow)
+        query = select(DeviceRow, ActuatorStateRow.state).outerjoin(
+            ActuatorStateRow, ActuatorStateRow.device_id == DeviceRow.id
+        )
         if device_family is not None:
             query = query.where(DeviceRow.device_family == device_family)
         if role is not None:
             query = query.where(DeviceRow.role == role)
-        rows = self._session.scalars(query.order_by(DeviceRow.created_at.desc())).all()
-        return [self._to_device(row) for row in rows]
+        rows = self._session.execute(query.order_by(DeviceRow.created_at.desc())).all()
+        return [self._to_device(row, state) for row, state in rows]
 
     def count_by_role(self) -> dict[str, int]:
         """Count globally: the current device schema has no location association."""
@@ -77,7 +91,7 @@ class DeviceRepository:
         return [self._to_sensor(device) for device in devices]
 
     @staticmethod
-    def _to_device(row: DeviceRow) -> Device:
+    def _to_device(row: DeviceRow, state: str | None = None) -> Device:
         return Device(
             id=row.id,
             device_type=row.device_type,
@@ -85,6 +99,7 @@ class DeviceRepository:
             device_family=row.device_family,
             display_name=row.display_name or row.device_type,
             default_config=dict(row.default_config),
+            state=state if row.role == "actuator" else None,
         )
 
     @staticmethod

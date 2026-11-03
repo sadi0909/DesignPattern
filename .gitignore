@@ -10,4 +10,5 @@ frontend/dist/
 backend/.venv/
 .DS_Store
 .freebuff/
-.QuestionsAnswers/
+.QuestionsAnswers/*
+.gitignore

@@ -18,6 +18,8 @@ export type ReadingDto = {
 export type DeviceFamily = "simulation" | "edge";
 export type DeviceRole = "sensor" | "actuator";
 
+export type ActuatorState = "off" | "idle" | "running" | "error" | "maintenance";
+
 export type DeviceDto = {
   id: string;
   device_type: string;
@@ -25,6 +27,8 @@ export type DeviceDto = {
   device_family: string;
   display_name: string;
   default_config: Record<string, unknown>;
+  state: ActuatorState | null;
+  allowed_commands: string[];
 };
 
 export type ZoneConfigRequest = {

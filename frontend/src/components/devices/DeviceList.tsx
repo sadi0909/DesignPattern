@@ -2,10 +2,19 @@ import { useEffect, useState } from "react";
 import {
   fetchDevices,
   provisionDeviceFamily,
+  type ActuatorState,
   type DeviceDto,
   type DeviceFamily,
 } from "../../services/api";
 import { DeviceFamilySwitcher } from "./DeviceFamilySwitcher";
+
+const stateStyles: Record<ActuatorState, string> = {
+  off: "bg-slate-200 text-slate-800",
+  idle: "bg-slate-100 text-slate-700",
+  running: "bg-emerald-100 text-emerald-800",
+  error: "bg-red-100 text-red-800",
+  maintenance: "bg-amber-100 text-amber-800",
+};
 
 export function DeviceList() {
   const [family, setFamily] = useState<DeviceFamily>("simulation");
@@ -79,9 +88,22 @@ export function DeviceList() {
                   <span className="rounded-full bg-violet-100 px-2 py-1 text-violet-800">
                     {device.device_family}
                   </span>
+                  {device.role === "actuator" && device.state && (
+                    <span
+                      className={`rounded-full px-2 py-1 ${stateStyles[device.state]}`}
+                      title={`Allowed commands: ${device.allowed_commands.join(", ") || "none"}`}
+                    >
+                      {device.state}
+                    </span>
+                  )}
                 </div>
               </div>
               <p className="mt-1 text-xs text-slate-500">{device.device_type}</p>
+              {device.role === "actuator" && (
+                <p className="mt-1 text-xs text-slate-600">
+                  Legal commands: {device.allowed_commands.length > 0 ? device.allowed_commands.join(", ") : "none"}
+                </p>
+              )}
               <pre className="mt-2 overflow-x-auto text-xs text-slate-600">
                 {JSON.stringify(device.default_config, null, 2)}
               </pre>

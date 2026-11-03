@@ -44,6 +44,22 @@ class DeviceRow(Base):
     )
 
 
+class ActuatorStateRow(Base):
+    """Persisted lifecycle state for one actuator device."""
+
+    __tablename__ = "actuator_states"
+
+    device_id: Mapped[UUID] = mapped_column(
+        PostgreSQLUUID(as_uuid=True),
+        ForeignKey("devices.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    state: Mapped[str] = mapped_column(String(16), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=text("now()")
+    )
+
+
 class LocationRow(Base):
     __tablename__ = "locations"
 
