@@ -19,7 +19,7 @@ def get_overview(
     location_id: UUID,
     facade: LocationOverviewFacade = Depends(get_overview_facade),  # noqa: B008
 ) -> LocationOverviewDto:
-    """Get a location and current recommendation with global device and sensor summaries."""
+    """Get a location with its device counts, latest readings, strategy, and recommendation."""
     try:
         return facade.get_overview(location_id)
     except LocationNotFoundError as exc:

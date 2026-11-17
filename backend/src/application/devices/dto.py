@@ -11,6 +11,10 @@ class DeviceDto(BaseModel):
     device_family: str
     display_name: str
     default_config: dict[str, object]
+    location_id: UUID | None = Field(
+        default=None,
+        description="Optional location assignment; null means the device is unassigned.",
+    )
     state: str | None = Field(
         default=None,
         description="Persisted lifecycle state for actuators; null for sensors.",

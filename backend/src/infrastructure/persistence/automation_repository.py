@@ -9,8 +9,8 @@ from domain.sensors.reading import Reading
 
 from .models import AutomationRuleRow, DeviceRow, ReadingRow
 
-# Matches MoistureSensorCreator.device_type. Devices are not yet bound to a
-# location, so the latest moisture reading is taken across moisture sensors.
+# Matches MoistureSensorCreator.device_type. Readings are scoped through the
+# sensor's optional location assignment.
 MOISTURE_DEVICE_TYPE = "moisture_sensor"
 
 
@@ -49,11 +49,14 @@ class AutomationRepository:
             raise
         return self._to_domain(row)
 
-    def latest_moisture_reading(self) -> Reading | None:
+    def latest_moisture_reading(self, location_id: UUID) -> Reading | None:
         row = self._session.scalars(
             select(ReadingRow)
             .join(DeviceRow, DeviceRow.id == ReadingRow.device_id)
-            .where(DeviceRow.device_type == MOISTURE_DEVICE_TYPE)
+            .where(
+                DeviceRow.device_type == MOISTURE_DEVICE_TYPE,
+                DeviceRow.location_id == location_id,
+            )
             .order_by(ReadingRow.recorded_at.desc(), ReadingRow.id.desc())
             .limit(1)
         ).first()

@@ -36,6 +36,11 @@ class LocationRepository:
 
         return self._to_domain(location_row, zone_rows)
 
+    def exists(self, location_id: UUID) -> bool:
+        return self._session.scalar(
+            select(LocationRow.id).where(LocationRow.id == location_id)
+        ) is not None
+
     def get_config(self, location_id: UUID) -> LocationConfig | None:
         location_row = self._session.get(LocationRow, location_id)
         if location_row is None:

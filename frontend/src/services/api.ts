@@ -5,6 +5,7 @@ export type SensorDto = {
   device_type: string;
   display_name: string;
   default_config: Record<string, unknown>;
+  location_id: string | null;
 };
 
 export type ReadingDto = {
@@ -27,6 +28,7 @@ export type DeviceDto = {
   device_family: string;
   display_name: string;
   default_config: Record<string, unknown>;
+  location_id: string | null;
   state: ActuatorState | null;
   allowed_commands: string[];
 };
@@ -128,6 +130,16 @@ export function fetchDevices(filters: {
   if (filters.role) params.set("role", filters.role);
   const query = params.size > 0 ? `?${params.toString()}` : "";
   return request<DeviceDto[]>(`/api/devices${query}`);
+}
+
+export function assignDeviceLocation(
+  deviceId: string,
+  locationId: string | null,
+): Promise<DeviceDto> {
+  return request<DeviceDto>(`/api/devices/${encodeURIComponent(deviceId)}/location`, {
+    method: "PATCH",
+    body: JSON.stringify({ location_id: locationId }),
+  });
 }
 
 export function provisionDeviceFamily(family: DeviceFamily): Promise<DeviceDto[]> {

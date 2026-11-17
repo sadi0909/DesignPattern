@@ -99,6 +99,9 @@ export function DeviceList() {
                 </div>
               </div>
               <p className="mt-1 text-xs text-slate-500">{device.device_type}</p>
+              <p className="mt-1 text-xs text-slate-500">
+                Location: {device.location_id ? <code>{device.location_id}</code> : "Unassigned"}
+              </p>
               {device.role === "actuator" && (
                 <p className="mt-1 text-xs text-slate-600">
                   Legal commands: {device.allowed_commands.length > 0 ? device.allowed_commands.join(", ") : "none"}

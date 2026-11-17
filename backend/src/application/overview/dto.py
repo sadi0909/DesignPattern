@@ -29,10 +29,10 @@ class OverviewRecommendationDto(BaseModel):
 class LocationOverviewDto(BaseModel):
     location: LocationSummaryDto
     device_counts: DeviceCountsDto = Field(
-        description="Global counts: devices are not yet associated with locations."
+        description="Devices assigned to the requested location; unassigned devices are excluded."
     )
     latest_readings: list[ReadingSummaryDto] = Field(
-        description="Latest reading per sensor globally; sensors are not yet associated with locations."
+        description="Latest reading per sensor assigned to the requested location."
     )
     strategy_key: str | None = Field(description="Active strategy, including the default when no rule is saved.")
     last_recommendation: OverviewRecommendationDto | None = Field(

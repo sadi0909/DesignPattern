@@ -66,9 +66,10 @@ class AutomationService:
         if not zones:
             return Recommendation(ACTION_WAIT, "No zones are configured for this location")
 
-        reading = self._rules.latest_moisture_reading()
+        reading = self._rules.latest_moisture_reading(location_id)
         if reading is None:
-            return Recommendation(ACTION_WAIT, "No moisture reading has been recorded yet")
+            return Recommendation(ACTION_WAIT, "No moisture reading has been recorded for this location")
+
         if reading.unit != MOISTURE_UNIT_PERCENT:
             return Recommendation(ACTION_WAIT, f"Latest moisture reading has unsupported unit {reading.unit!r}")
 

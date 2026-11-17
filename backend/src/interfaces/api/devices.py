@@ -8,12 +8,15 @@ from sqlalchemy.orm import Session
 from application.devices.actuator_state_service import ActuatorStateService
 from application.devices.dto import DeviceDto
 from application.devices.family_service import DeviceFamilyService
+from application.devices.location_service import DeviceLocationService
 from application.devices.mappers import device_to_dto, devices_to_dtos
 from domain.actuators.errors import IllegalTransitionError, UnknownActuatorStateError
 from domain.devices.errors import DeviceNotFoundError
 from domain.devices.family_factory import UnsupportedDeviceFamilyError
+from domain.locations.errors import LocationNotFoundError
 from infrastructure.persistence.actuator_state_repository import ActuatorStateRepository
 from infrastructure.persistence.device_repository import DeviceRepository
+from infrastructure.persistence.location_repository import LocationRepository
 from infrastructure.persistence.session import get_db
 
 router = APIRouter(prefix="/api/devices", tags=["devices"])
@@ -23,8 +26,18 @@ class TransitionRequest(BaseModel):
     target: str = Field(min_length=1, description="Target actuator state")
 
 
+class AssignLocationRequest(BaseModel):
+    location_id: UUID | None = Field(
+        description="Location to attach the device to, or null to unassign it.",
+    )
+
+
 def get_device_family_service(db: Session = Depends(get_db)) -> DeviceFamilyService:  # noqa: B008
     return DeviceFamilyService(DeviceRepository(db))
+
+
+def get_device_location_service(db: Session = Depends(get_db)) -> DeviceLocationService:  # noqa: B008
+    return DeviceLocationService(DeviceRepository(db), LocationRepository(db))
 
 
 def get_actuator_state_service(db: Session = Depends(get_db)) -> ActuatorStateService:  # noqa: B008
@@ -69,6 +82,25 @@ def get_device(
     try:
         return device_to_dto(service.get_device(device_id))
     except DeviceNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+
+@router.patch(
+    "/{device_id}/location",
+    response_model=DeviceDto,
+    responses={
+        404: {"description": "Device or location not found"},
+    },
+)
+def assign_device_location(
+    device_id: UUID,
+    payload: AssignLocationRequest,
+    service: DeviceLocationService = Depends(get_device_location_service),  # noqa: B008
+) -> DeviceDto:
+    """Attach or unassign one device through the optional Phase 4 location link."""
+    try:
+        return device_to_dto(service.assign(device_id, payload.location_id))
+    except (DeviceNotFoundError, LocationNotFoundError) as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
 
 

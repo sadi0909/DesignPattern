@@ -61,6 +61,9 @@ function SensorCard({ sensor }: { sensor: SensorDto }) {
         <div>
           <p className="font-medium text-slate-800">{sensor.display_name}</p>
           <p className="text-xs text-slate-500">{sensor.device_type}</p>
+          <p className="text-xs text-slate-500">
+            Location: {sensor.location_id ? <code>{sensor.location_id}</code> : "Unassigned"}
+          </p>
         </div>
         <button
           type="button"

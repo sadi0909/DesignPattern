@@ -26,6 +26,7 @@ class SensorResponse(BaseModel):
     device_type: str
     display_name: str
     default_config: dict[str, object]
+    location_id: UUID | None = None
 
 
 def get_service(db: Session = Depends(get_db)) -> SensorService:  # noqa: B008

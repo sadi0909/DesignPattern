@@ -25,6 +25,7 @@ class DeviceRow(Base):
     __table_args__ = (
         Index("ix_devices_role", "role"),
         Index("ix_devices_family", "device_family"),
+        Index("ix_devices_location_id", "location_id"),
     )
 
     id: Mapped[UUID] = mapped_column(
@@ -36,6 +37,15 @@ class DeviceRow(Base):
     role: Mapped[str] = mapped_column(String(32), nullable=False, server_default=text("'sensor'"))
     device_family: Mapped[str] = mapped_column(
         String(32), nullable=False, default="simulation", server_default=text("'simulation'")
+    )
+    location_id: Mapped[UUID | None] = mapped_column(
+        PostgreSQLUUID(as_uuid=True),
+        ForeignKey(
+            "locations.id",
+            ondelete="SET NULL",
+            name="fk_devices_location_id_locations",
+        ),
+        nullable=True,
     )
     display_name: Mapped[str | None] = mapped_column(String(128), nullable=True)
     default_config: Mapped[dict[str, object]] = mapped_column(

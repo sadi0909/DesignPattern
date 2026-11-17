@@ -41,8 +41,8 @@ class ReadingRepository:
         ).all()
         return [self._to_domain(row) for row in rows]
 
-    def latest_per_sensor(self) -> list[Reading]:
-        """One latest reading per sensor in one query; devices are not location-bound."""
+    def latest_per_sensor(self, location_id: UUID) -> list[Reading]:
+        """One latest reading per sensor assigned to the requested location."""
         ranked = (
             select(
                 ReadingRow.id.label("reading_id"),
@@ -52,7 +52,7 @@ class ReadingRepository:
                 ).label("rank"),
             )
             .join(DeviceRow, DeviceRow.id == ReadingRow.device_id)
-            .where(DeviceRow.role == "sensor")
+            .where(DeviceRow.role == "sensor", DeviceRow.location_id == location_id)
             .subquery()
         )
         rows = self._session.scalars(

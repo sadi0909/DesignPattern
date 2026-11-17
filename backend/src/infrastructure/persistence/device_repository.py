@@ -4,6 +4,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from domain.devices.entity import Device
+from domain.devices.errors import DeviceNotFoundError
 from domain.sensors.entity import Sensor
 
 from .models import ActuatorStateRow, DeviceRow
@@ -21,6 +22,7 @@ class DeviceRepository:
             device_family="simulation",
             display_name=sensor.display_name,
             default_config=dict(sensor.default_config),
+            location_id=sensor.location_id,
         )
         return self._to_sensor(self.save_device(device))
 
@@ -38,6 +40,7 @@ class DeviceRepository:
                 device_family=device.device_family,
                 display_name=device.display_name,
                 default_config=dict(device.default_config),
+                location_id=device.location_id,
             )
             for device in devices
         ]
@@ -63,6 +66,23 @@ class DeviceRepository:
         ).one_or_none()
         return None if row is None else self._to_device(*row)
 
+    def assign_location(self, device_id: UUID, location_id: UUID | None) -> Device:
+        """Attach or detach one device from a location; callers validate the location."""
+        row = self._session.get(DeviceRow, device_id)
+        if row is None:
+            raise DeviceNotFoundError(f"Device {device_id} does not exist")
+        row.location_id = location_id
+        try:
+            self._session.commit()
+            self._session.refresh(row)
+        except Exception:
+            self._session.rollback()
+            raise
+        device = self.get_device(device_id)
+        if device is None:
+            raise DeviceNotFoundError(f"Device {device_id} does not exist")
+        return device
+
     def list_devices(
         self,
         *,
@@ -79,10 +99,12 @@ class DeviceRepository:
         rows = self._session.execute(query.order_by(DeviceRow.created_at.desc())).all()
         return [self._to_device(row, state) for row, state in rows]
 
-    def count_by_role(self) -> dict[str, int]:
-        """Count globally: the current device schema has no location association."""
+    def count_by_role(self, location_id: UUID) -> dict[str, int]:
+        """Count devices assigned to one location; unassigned devices are excluded."""
         rows = self._session.execute(
-            select(DeviceRow.role, func.count()).group_by(DeviceRow.role)
+            select(DeviceRow.role, func.count())
+            .where(DeviceRow.location_id == location_id)
+            .group_by(DeviceRow.role)
         ).all()
         return {role: count for role, count in rows}
 
@@ -100,6 +122,7 @@ class DeviceRepository:
             display_name=row.display_name or row.device_type,
             default_config=dict(row.default_config),
             state=state if row.role == "actuator" else None,
+            location_id=row.location_id,
         )
 
     @staticmethod
@@ -109,4 +132,5 @@ class DeviceRepository:
             device_type=device.device_type,
             display_name=device.display_name,
             default_config=dict(device.default_config),
+            location_id=device.location_id,
         )

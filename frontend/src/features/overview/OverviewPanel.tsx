@@ -55,13 +55,13 @@ export function OverviewPanel() {
       {overview && (
         <div className="space-y-3" aria-live="polite">
           <h3 className="font-semibold text-slate-900">{overview.location.name}</h3>
-          <p className="text-xs text-amber-800">Device counts and readings are global: devices are not yet assigned to locations. Recommendations use the latest global moisture reading.</p>
+          <p className="text-xs text-slate-500">Only devices assigned to this location are included.</p>
           <section className="rounded-md bg-slate-50 p-3 text-sm">
-            <h4 className="font-semibold">Devices (global)</h4>
+            <h4 className="font-semibold">Devices</h4>
             <p>Sensors: {overview.device_counts.sensor} · Actuators: {overview.device_counts.actuator}</p>
           </section>
           <section className="rounded-md bg-slate-50 p-3 text-sm">
-            <h4 className="font-semibold">Latest sensor readings (global)</h4>
+            <h4 className="font-semibold">Latest sensor readings</h4>
             {overview.latest_readings.length === 0 ? <p>No readings recorded yet.</p> : (
               <ul className="space-y-2">
                 {overview.latest_readings.map((reading) => (

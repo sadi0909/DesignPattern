@@ -8,3 +8,4 @@ class Sensor:
     device_type: str
     display_name: str
     default_config: dict[str, object] = field(default_factory=dict)
+    location_id: UUID | None = None

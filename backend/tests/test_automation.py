@@ -112,7 +112,7 @@ class FakeAutomationRepository:
         self.rules[location_id] = rule
         return rule
 
-    def latest_moisture_reading(self) -> Reading | None:
+    def latest_moisture_reading(self, location_id: UUID) -> Reading | None:
         return max(self.readings, key=lambda reading: reading.recorded_at, default=None)
 
 
@@ -342,8 +342,14 @@ def test_strategy_persists_and_evaluates_against_stored_readings():
             sensor = client.post("/api/sensors", json={"type": "moisture"})
             assert sensor.status_code == 201
             device_id = UUID(sensor.json()["id"])
+            assigned = client.patch(
+                f"/api/devices/{device_id}/location",
+                json={"location_id": str(location_id)},
+            )
+            assert assigned.status_code == 200
+            assert assigned.json()["location_id"] == str(location_id)
 
-            # Future-dated so it is the latest moisture reading in the database.
+            # Future-dated so it is the latest moisture reading for this location.
             with SessionLocal() as session:
                 session.add(
                     ReadingRow(

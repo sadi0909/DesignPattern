@@ -44,7 +44,7 @@ Also, if two interfaces don't match and we need to translate data between them, 
 
 The recommendation is calculated when we request the overview, it is not a saved result from before. If the location doesn't exist, the API returns 404.
 
-We use location_id because the configuration and strategy belong to a particular location. But right now devices are not connected to locations, so the device counts and readings are still global. Thats one limitation of the current setup.
+We use location_id because the configuration, strategy, devices and readings should all refer to the same site. Devices get the nullable `devices.location_id` that Phases 3 and 4 allowed as an optional extension, and an operator can assign or unassign one through `PATCH /api/devices/{device_id}/location`. The overview only counts devices assigned to the requested location, only shows their latest readings, and uses the latest moisture reading from that location for the recommendation. Unassigned devices are excluded.
 
 5. Why does this phase **not** require a new business table? What already exists from Phases 2–6 that the facade only **composes**?
 
@@ -52,7 +52,7 @@ We use location_id because the configuration and strategy belong to a particular
 
 The facade just collects this information and combines it into one DTO for the overview page.
 
-So we don't need another table because the overview is not a new business entity. The recommendation is calculated when requested instead of being saved in database.
+So we don't need another table because the overview is not a new business entity. The nullable `devices.location_id` is an association on the existing `devices` table, explicitly allowed as an optional Phase 4 extension, not a new overview/business table. The recommendation is calculated when requested instead of being saved in database.
 
 6. The overview HTTP handler should call **only** the facade, not reading/strategy/device repositories directly. Why? How does that help tests and later changes to the query shape?
 

@@ -34,8 +34,8 @@ class LocationOverviewFacade:
         if config is None:
             raise LocationNotFoundError(f"Location {location_id} does not exist")
 
-        counts = self._devices.count_by_role()
-        readings = self._readings.latest_per_sensor()
+        counts = self._devices.count_by_role(location_id)
+        readings = self._readings.latest_per_sensor(location_id)
         recommendation = self._automation.evaluate(location_id)
         return LocationOverviewDto(
             location=LocationSummaryDto(id=location_id, name=config.location.name),
