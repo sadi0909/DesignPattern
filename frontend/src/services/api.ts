@@ -31,6 +31,15 @@ export type DeviceDto = {
   allowed_commands: string[];
 };
 
+export type ActuatorExecutionDto = {
+  id: string;
+  device_id: string;
+  success: boolean;
+  policy_applied: string[];
+  message: string | null;
+  created_at: string;
+};
+
 export type ZoneConfigRequest = {
   name: string;
   moisture_threshold_low: number;
@@ -125,6 +134,21 @@ export function provisionDeviceFamily(family: DeviceFamily): Promise<DeviceDto[]
   const params = new URLSearchParams({ family });
   return request<DeviceDto[]>(`/api/devices/provision?${params.toString()}`, {
     method: "POST",
+  });
+}
+
+export function fetchActuatorExecutions(limit = 20): Promise<ActuatorExecutionDto[]> {
+  return request<ActuatorExecutionDto[]>(`/api/actuators/executions?limit=${limit}`);
+}
+
+export function applyActuatorCommand(
+  deviceId: string,
+  command: string,
+  payload: Record<string, unknown> = {},
+): Promise<{ status: string }> {
+  return request<{ status: string }>(`/api/actuators/${encodeURIComponent(deviceId)}/apply`, {
+    method: "POST",
+    body: JSON.stringify({ command, payload }),
   });
 }
 

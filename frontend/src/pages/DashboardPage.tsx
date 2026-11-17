@@ -1,4 +1,5 @@
 import { DeviceList } from "../components/devices/DeviceList";
+import { ExecutionLog } from "../components/devices/ExecutionLog";
 import { LocationConfigWizard } from "../components/config/LocationConfigWizard";
 import { StrategyPanel } from "../features/automation/StrategyPanel";
 import { SensorList } from "../features/sensors/SensorList";
@@ -50,6 +51,16 @@ export function DashboardPage() {
           <h2 className="mb-2 text-lg font-semibold text-slate-900">Automation</h2>
           <p className="text-slate-500">Choose a strategy per location and evaluate its recommendation</p>
           <StrategyPanel />
+        </article>
+        <article
+          id="executions"
+          className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow lg:col-span-3"
+        >
+          <h2 className="mb-2 text-lg font-semibold text-slate-900">Execution log</h2>
+          <p className="text-slate-500">
+            Every decorated actuator attempt, including blocked policy checks
+          </p>
+          <ExecutionLog />
         </article>
         {sections.map((section) => (
           <article

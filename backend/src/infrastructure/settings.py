@@ -11,6 +11,9 @@ class Settings(BaseSettings):
     api_host: str = "0.0.0.0"
     api_port: int = 8000
     cors_origins: str = "http://localhost:5173"
+    # Phase 9 policy: refuse applies while an actuator has been running longer
+    # than this. Override with ACTUATOR_MAX_RUNTIME_SECONDS in backend/.env.
+    actuator_max_runtime_seconds: int = 30
 
     model_config = SettingsConfigDict(
         # backend/.env is the project's env file; a cwd .env is picked up too if present.
