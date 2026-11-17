@@ -15,7 +15,7 @@ State makes each mode an object that owns its legal exits and its command vocabu
 | **Context** | `ActuatorContext` — holds the current `ActuatorState`, exposes `transition(target)` and `allowed_commands()` |
 | **State interface** | `ActuatorState` — `name`, `allowed_targets`, `commands`, `allows()`, `require_transition()`, `allowed_commands()` |
 | **Concrete states** | `OffState`, `IdleState`, `RunningState`, `ErrorState`, `MaintenanceState` |
-| **Client** | `POST /api/devices/{id}/transition` and the dashboard badges; Phase 10 Command will be the next client |
+| **Client** | `POST /api/devices/{id}/transition`, the dashboard badges, and the Phase 10 Command invoker |
 
 `state_for(name)` resolves a persisted string to its singleton state object and raises `UnknownActuatorStateError` for anything outside the lifecycle. `ActuatorContext.transition()` resolves the target first, then asks the current state for permission, so an unknown target is a 400 and a known but illegal edge is a 409.
 
@@ -24,12 +24,12 @@ State makes each mode an object that owns its legal exits and its command vocabu
 | From | Allowed targets | `allowed_commands` |
 |------|-----------------|--------------------|
 | `off` | `idle`, `error` | `enable` |
-| `idle` | `running`, `maintenance`, `off`, `error` | `start_pump`, `enter_maintenance`, `shutdown` |
+| `idle` | `running`, `maintenance`, `off`, `error` | `start_pump`, `set_light_level`, `enter_maintenance`, `shutdown` |
 | `running` | `idle`, `error` | `stop_pump` |
 | `error` | `idle`, `off` | `reset` |
 | `maintenance` | `idle`, `off`, `error` | `exit_maintenance`, `shutdown` |
 
-Self-transitions are rejected: `idle → idle` is not an edge. The command names are the vocabulary Phase 10 will reuse; the demo endpoint in this phase accepts a target state, so `allowed_commands` is currently advisory for the UI while the transition table remains the authoritative guard. Phase 10 will map each command to its transition and check `allowed_commands` before executing.
+Self-transitions are rejected: `idle → idle` is not an edge. The command names are the vocabulary Phase 10 reuses; the transition table remains the authoritative lifecycle guard, and Phase 10 checks `allowed_commands` before sending a command to the decorated actuator port. `set_light_level` is in the idle vocabulary because a light can be adjusted while idle; the command layer additionally limits it to `grow_light` devices.
 
 ## Where it lives in code
 
@@ -51,9 +51,9 @@ Self-transitions are rejected: `idle → idle` is not an edge. The command names
 
 ## Known limitations
 
-- `allowed_commands` uses pump-oriented names (`start_pump`, `stop_pump`) for every actuator. Grow lights will need their own command vocabulary when Phase 10 introduces real commands.
+- `allowed_commands` is a shared lifecycle vocabulary, so it includes pump and light command names for every actuator. Phase 10 commands check device type separately: `start_pump`/`stop_pump` require a `water_pump`, and `set_light_level` requires a `grow_light`.
 - There is no optimistic concurrency check: two simultaneous transitions can both read `idle` and the last write wins. A production system would compare `updated_at` or lock the row; the assignment does not require it.
-- The demo transition endpoint is intentionally temporary. Phase 10 routes actuator actions through Command instead of driving state directly.
+- The demo transition endpoint remains for Phase 8 compatibility. Phase 10 routes normal actuator actions through Command; the command path checks `allowed_commands` and saves the resulting state.
 
 ## Add-a-state exercise
 

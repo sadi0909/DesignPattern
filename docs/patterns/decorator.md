@@ -51,7 +51,7 @@ Using the State timestamp keeps one lifecycle as the source of truth. A second "
 | `message` | failure text, or `null` on success |
 | `created_at` | timestamp with time zone |
 
-`ExecutionLogRepository.record()` commits immediately, so a failed attempt survives the exception that logging re-raises. `GET /api/actuators/executions?limit=20` returns newest first; `POST /api/actuators/{device_id}/apply` is a temporary demo entry point until Phase 10 Command owns execution.
+`ExecutionLogRepository.record()` commits immediately, so a failed attempt survives the exception that logging re-raises. `GET /api/actuators/executions?limit=20` returns newest first. Phase 10's command invoker calls this same decorated port; the legacy `POST /api/actuators/{device_id}/apply` route remains only as a Phase 9 demo entry point and is no longer used by the dashboard.
 
 The dashboard panel shows time, device, a success/failed badge, the policies, and the failure message. A blocked attempt is therefore visible after refresh as `success=false` with `maxRunTime` in `policy_applied` and the limit in `message`.
 
@@ -79,6 +79,6 @@ The dashboard panel shows time, device, a success/failed badge, the policies, an
 ## Known limitations
 
 - Max run time blocks every command while over the limit, including a stop command. A production policy would likely let stop/shutdown through; the phase requirement only asks for a blocked attempt.
-- The demo apply endpoint does not change the actuator's Phase 8 state. Phase 10 will map commands to transitions and execute through this same decorated port.
+- The legacy demo apply endpoint does not change the actuator's Phase 8 state. Phase 10's command path maps commands to transitions and executes through this same decorated port; only the legacy route skips the lifecycle.
 - `SimulationActuatorAdapter` keeps its applied-command history in memory per request, so that history is not durable. The durable record is `actuator_execution_log`.
 - Policy failures return HTTP 409; adapter/driver failures bubble up as 500. Both are still recorded in the execution log.

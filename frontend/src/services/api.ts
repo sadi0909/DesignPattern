@@ -33,6 +33,18 @@ export type DeviceDto = {
   allowed_commands: string[];
 };
 
+export type CommandStatus = "success" | "failed" | "rejected";
+
+export type CommandLogDto = {
+  id: string;
+  command_type: string;
+  device_id: string;
+  payload: Record<string, unknown>;
+  status: CommandStatus;
+  error_message: string | null;
+  created_at: string;
+};
+
 export type ActuatorExecutionDto = {
   id: string;
   device_id: string;
@@ -162,6 +174,21 @@ export function applyActuatorCommand(
     method: "POST",
     body: JSON.stringify({ command, payload }),
   });
+}
+
+export function executeCommand(
+  deviceId: string,
+  commandType: string,
+  payload: Record<string, unknown> = {},
+): Promise<CommandLogDto> {
+  return request<CommandLogDto>("/api/commands", {
+    method: "POST",
+    body: JSON.stringify({ command_type: commandType, device_id: deviceId, payload }),
+  });
+}
+
+export function fetchCommands(limit = 50): Promise<CommandLogDto[]> {
+  return request<CommandLogDto[]>(`/api/commands?limit=${limit}`);
 }
 
 export function createLocationConfig(payload: LocationConfigRequest): Promise<LocationConfigDto> {

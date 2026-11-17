@@ -1,6 +1,5 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState } from "react";
 import {
-  applyActuatorCommand,
   fetchActuatorExecutions,
   fetchDevices,
   type ActuatorExecutionDto,
@@ -17,12 +16,8 @@ function formatTime(value: string) {
 export function ExecutionLog() {
   const [executions, setExecutions] = useState<ActuatorExecutionDto[]>([]);
   const [actuators, setActuators] = useState<DeviceDto[]>([]);
-  const [deviceId, setDeviceId] = useState("");
-  const [command, setCommand] = useState("start_pump");
   const [loading, setLoading] = useState(true);
-  const [applying, setApplying] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
 
   async function load() {
     try {
@@ -33,7 +28,6 @@ export function ExecutionLog() {
       ]);
       setExecutions(rows);
       setActuators(devices);
-      setDeviceId((current) => current || devices[0]?.id || "");
     } catch {
       setError("Unable to load actuator executions. Check that the API is running.");
     } finally {
@@ -44,29 +38,6 @@ export function ExecutionLog() {
   useEffect(() => {
     void load();
   }, []);
-
-  async function handleApply(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!deviceId || !command.trim()) return;
-    setApplying(true);
-    setNotice(null);
-    setError(null);
-    try {
-      await applyActuatorCommand(deviceId, command.trim());
-      setNotice("Command applied. The attempt is recorded below.");
-      setExecutions(await fetchActuatorExecutions(20));
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "The apply attempt failed.");
-      // A blocked attempt is still a recorded row, so refresh best-effort.
-      try {
-        setExecutions(await fetchActuatorExecutions(20));
-      } catch {
-        // Keep the policy error visible instead of replacing it with a fetch error.
-      }
-    } finally {
-      setApplying(false);
-    }
-  }
 
   const deviceNames = new Map(actuators.map((device) => [device.id, device.display_name]));
 
@@ -84,46 +55,6 @@ export function ExecutionLog() {
         </button>
       </div>
 
-      <form onSubmit={(event) => void handleApply(event)} className="mt-3 flex flex-wrap items-end gap-2">
-        <label className="text-xs font-medium text-slate-600">
-          Actuator
-          <select
-            value={deviceId}
-            onChange={(event) => setDeviceId(event.target.value)}
-            disabled={applying || actuators.length === 0}
-            className="mt-1 block rounded-md border border-slate-300 bg-white px-2 py-1 text-sm text-slate-800"
-          >
-            {actuators.length === 0 && <option value="">No actuators</option>}
-            {actuators.map((device) => (
-              <option key={device.id} value={device.id}>
-                {device.display_name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="text-xs font-medium text-slate-600">
-          Command
-          <input
-            value={command}
-            onChange={(event) => setCommand(event.target.value)}
-            disabled={applying}
-            className="mt-1 block w-40 rounded-md border border-slate-300 bg-white px-2 py-1 text-sm text-slate-800"
-          />
-        </label>
-        <button
-          type="submit"
-          disabled={applying || !deviceId || !command.trim()}
-          className="rounded-md bg-emerald-600 px-3 py-2 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
-        >
-          {applying ? "Applying…" : "Apply demo command"}
-        </button>
-      </form>
-
-      {notice && (
-        <p className="mt-3 text-sm text-emerald-700" role="status" aria-live="polite">
-          {notice}
-        </p>
-      )}
       {error && (
         <p className="mt-3 text-sm text-red-600" role="alert">
           {error}
@@ -134,7 +65,7 @@ export function ExecutionLog() {
         <p className="mt-4 text-sm text-slate-500">Loading executions…</p>
       ) : executions.length === 0 ? (
         <p className="mt-4 text-sm text-slate-500">
-          No actuator executions yet. Apply a demo command to create the first log row.
+          No actuator executions yet. Run a command from Controls to create the first entry.
         </p>
       ) : (
         <div className="mt-4 overflow-x-auto">

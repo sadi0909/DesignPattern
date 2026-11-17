@@ -101,6 +101,36 @@ class ActuatorExecutionLogRow(Base):
     )
 
 
+class CommandLogRow(Base):
+    """Audit of an operator command, separate from decorated apply attempts."""
+
+    __tablename__ = "command_log"
+    __table_args__ = (
+        Index("ix_command_log_created_at", text("created_at DESC")),
+        Index("ix_command_log_device_id", "device_id"),
+    )
+
+    id: Mapped[UUID] = mapped_column(
+        PostgreSQLUUID(as_uuid=True),
+        primary_key=True,
+        server_default=text("gen_random_uuid()"),
+    )
+    command_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    device_id: Mapped[UUID] = mapped_column(
+        PostgreSQLUUID(as_uuid=True),
+        ForeignKey("devices.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    payload: Mapped[dict[str, object]] = mapped_column(
+        JSONB, nullable=False, default=dict, server_default=text("'{}'::jsonb")
+    )
+    status: Mapped[str] = mapped_column(String(16), nullable=False)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=text("now()")
+    )
+
+
 class LocationRow(Base):
     __tablename__ = "locations"
 

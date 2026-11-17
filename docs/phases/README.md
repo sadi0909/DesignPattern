@@ -15,7 +15,7 @@ This project grows a smart greenhouse control system one phase at a time. Each p
 | 7 | Facade — single location-scoped overview operation | ✅ Done — optional Phase 4 device location link activated |
 | 8 | State — actuator lifecycle with guarded transitions | ✅ Done |
 | 9 | Decorator — logging/policies wrapped around actuator execution | ✅ Done |
-| 10 | Command — encapsulated actuator actions, command history | ⬜ |
+| 10 | Command — encapsulated actuator actions, command history | ✅ Done |
 | 11 | Observer — in-process event bus, alerts, event feed | ⬜ |
 | 12 | API / WS / hardening — production `/api`, WebSocket fan-out, indexes, seeds | ⬜ |
 

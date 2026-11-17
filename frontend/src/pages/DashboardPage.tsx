@@ -1,3 +1,4 @@
+import { CommandPanel } from "../components/commands/CommandPanel";
 import { DeviceList } from "../components/devices/DeviceList";
 import { ExecutionLog } from "../components/devices/ExecutionLog";
 import { LocationConfigWizard } from "../components/config/LocationConfigWizard";
@@ -5,10 +6,7 @@ import { StrategyPanel } from "../features/automation/StrategyPanel";
 import { SensorList } from "../features/sensors/SensorList";
 import { OverviewPanel } from "../features/overview/OverviewPanel";
 
-const sections = [
-  { id: "controls", title: "Controls", description: "Manual actuator control" },
-  { id: "events", title: "Events", description: "Alerts and activity log" },
-];
+const sections = [{ id: "events", title: "Events", description: "Alerts and activity log" }];
 
 export function DashboardPage() {
   return (
@@ -51,6 +49,17 @@ export function DashboardPage() {
           <h2 className="mb-2 text-lg font-semibold text-slate-900">Automation</h2>
           <p className="text-slate-500">Choose a strategy per location and evaluate its recommendation</p>
           <StrategyPanel />
+        </article>
+        <article
+          id="controls"
+          className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow lg:col-span-3"
+        >
+          <h2 className="mb-2 text-lg font-semibold text-slate-900">Controls</h2>
+          <p className="text-slate-500">
+            Commands are checked against the current state, executed through the decorated
+            actuator port, and retained in the command history.
+          </p>
+          <CommandPanel />
         </article>
         <article
           id="executions"

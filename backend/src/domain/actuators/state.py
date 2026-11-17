@@ -49,7 +49,7 @@ class OffState(ActuatorState):
 class IdleState(ActuatorState):
     name = "idle"
     allowed_targets = frozenset({"running", "maintenance", "off", "error"})
-    commands = ("start_pump", "enter_maintenance", "shutdown")
+    commands = ("start_pump", "set_light_level", "enter_maintenance", "shutdown")
 
 
 class RunningState(ActuatorState):

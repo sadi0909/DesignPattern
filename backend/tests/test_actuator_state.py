@@ -31,7 +31,12 @@ def test_every_state_is_registered_and_targets_exist():
 
 def test_idle_to_running_is_allowed_and_commands_change():
     context = ActuatorContext(uuid4(), state_for("idle"))
-    assert context.allowed_commands() == ["start_pump", "enter_maintenance", "shutdown"]
+    assert context.allowed_commands() == [
+        "start_pump",
+        "set_light_level",
+        "enter_maintenance",
+        "shutdown",
+    ]
 
     assert context.transition("running") == "running"
     assert context.state_name == "running"
@@ -211,6 +216,7 @@ def test_transition_persists_and_illegal_transition_does_not_update_row():
             assert detail.json()["state"] == "idle"
             assert detail.json()["allowed_commands"] == [
                 "start_pump",
+                "set_light_level",
                 "enter_maintenance",
                 "shutdown",
             ]
