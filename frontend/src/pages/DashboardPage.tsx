@@ -1,12 +1,11 @@
 import { CommandPanel } from "../components/commands/CommandPanel";
 import { DeviceList } from "../components/devices/DeviceList";
 import { ExecutionLog } from "../components/devices/ExecutionLog";
+import { EventFeed } from "../components/events/EventFeed";
 import { LocationConfigWizard } from "../components/config/LocationConfigWizard";
 import { StrategyPanel } from "../features/automation/StrategyPanel";
 import { SensorList } from "../features/sensors/SensorList";
 import { OverviewPanel } from "../features/overview/OverviewPanel";
-
-const sections = [{ id: "events", title: "Events", description: "Alerts and activity log" }];
 
 export function DashboardPage() {
   return (
@@ -71,17 +70,17 @@ export function DashboardPage() {
           </p>
           <ExecutionLog />
         </article>
-        {sections.map((section) => (
-          <article
-            key={section.id}
-            id={section.id}
-            className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow"
-          >
-            <h2 className="mb-2 text-lg font-semibold text-slate-900">{section.title}</h2>
-            <p className="text-slate-500">{section.description}</p>
-            <div className="mt-4 h-24 rounded-lg bg-slate-50" />
-          </article>
-        ))}
+        <article
+          id="events"
+          className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow lg:col-span-3"
+        >
+          <h2 className="mb-2 text-lg font-semibold text-slate-900">Events</h2>
+          <p className="text-slate-500">
+            Persisted alerts from the in-process event bus. The feed survives refresh
+            because alerts live in PostgreSQL.
+          </p>
+          <EventFeed />
+        </article>
       </div>
     </div>
   );

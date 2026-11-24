@@ -45,6 +45,21 @@ export type CommandLogDto = {
   created_at: string;
 };
 
+export type AlertSeverity = "info" | "warning" | "critical";
+export type AlertStatus = "active" | "resolved";
+
+export type AlertDto = {
+  id: string;
+  location_id: string | null;
+  device_id: string | null;
+  severity: AlertSeverity;
+  message: string;
+  event_type: string;
+  status: AlertStatus;
+  created_at: string;
+  acknowledged_at: string | null;
+};
+
 export type ActuatorExecutionDto = {
   id: string;
   device_id: string;
@@ -189,6 +204,18 @@ export function executeCommand(
 
 export function fetchCommands(limit = 50): Promise<CommandLogDto[]> {
   return request<CommandLogDto[]>(`/api/commands?limit=${limit}`);
+}
+
+export function fetchAlerts(params: {
+  status?: AlertStatus;
+  locationId?: string;
+  limit?: number;
+} = {}): Promise<AlertDto[]> {
+  const search = new URLSearchParams();
+  if (params.status) search.set("status", params.status);
+  if (params.locationId) search.set("location_id", params.locationId);
+  search.set("limit", String(params.limit ?? 50));
+  return request<AlertDto[]>(`/api/alerts?${search.toString()}`);
 }
 
 export function createLocationConfig(payload: LocationConfigRequest): Promise<LocationConfigDto> {

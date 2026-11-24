@@ -26,6 +26,7 @@ from infrastructure.persistence.device_repository import DeviceRepository
 from infrastructure.persistence.models import (
     ActuatorExecutionLogRow,
     ActuatorStateRow,
+    AlertRow,
     CommandLogRow,
     DeviceRow,
 )
@@ -326,6 +327,9 @@ def test_command_api_persists_success_rejection_and_execution_attempts():
     finally:
         if device_id is not None:
             with SessionLocal() as session:
+                # Phase 11 publishes command.failed alerts; remove them before
+                # the device delete turns their foreign key into NULL.
+                session.execute(delete(AlertRow).where(AlertRow.device_id == device_id))
                 session.execute(delete(DeviceRow).where(DeviceRow.id == device_id))
                 session.commit()
 
@@ -395,6 +399,9 @@ def test_decorator_failure_is_failed_in_command_and_execution_logs():
     finally:
         if device_id is not None:
             with SessionLocal() as session:
+                # Phase 11 publishes command.failed alerts; remove them before
+                # the device delete turns their foreign key into NULL.
+                session.execute(delete(AlertRow).where(AlertRow.device_id == device_id))
                 session.execute(delete(DeviceRow).where(DeviceRow.id == device_id))
                 session.commit()
 
@@ -429,6 +436,9 @@ def test_device_command_alias_uses_the_same_invoker():
     finally:
         if device_id is not None:
             with SessionLocal() as session:
+                # Phase 11 publishes command.failed alerts; remove them before
+                # the device delete turns their foreign key into NULL.
+                session.execute(delete(AlertRow).where(AlertRow.device_id == device_id))
                 session.execute(delete(DeviceRow).where(DeviceRow.id == device_id))
                 session.commit()
 
@@ -477,5 +487,8 @@ def test_set_light_level_is_audited_for_a_grow_light():
     finally:
         if device_id is not None:
             with SessionLocal() as session:
+                # Phase 11 publishes command.failed alerts; remove them before
+                # the device delete turns their foreign key into NULL.
+                session.execute(delete(AlertRow).where(AlertRow.device_id == device_id))
                 session.execute(delete(DeviceRow).where(DeviceRow.id == device_id))
                 session.commit()

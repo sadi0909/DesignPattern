@@ -4,6 +4,7 @@ from scalar_fastapi import get_scalar_api_reference
 
 from infrastructure.settings import settings
 from interfaces.api.actuators import router as actuators_router
+from interfaces.api.alerts import router as alerts_router
 from interfaces.api.automation import router as automation_router
 from interfaces.api.commands import device_commands_router
 from interfaces.api.commands import router as commands_router
@@ -35,6 +36,7 @@ app.include_router(devices_router)
 app.include_router(actuators_router)
 app.include_router(commands_router)
 app.include_router(device_commands_router)
+app.include_router(alerts_router)
 app.include_router(locations_router)
 app.include_router(automation_router)
 app.include_router(overview_router)

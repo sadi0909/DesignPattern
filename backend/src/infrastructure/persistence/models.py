@@ -131,6 +131,51 @@ class CommandLogRow(Base):
     )
 
 
+class AlertRow(Base):
+    """Persisted notification produced by an event subscriber (Phase 11)."""
+
+    __tablename__ = "alerts"
+    __table_args__ = (
+        Index("ix_alerts_created_at", text("created_at DESC")),
+        Index("ix_alerts_status", "status"),
+        Index("ix_alerts_location_id", "location_id"),
+        Index("ix_alerts_device_id", "device_id"),
+        CheckConstraint(
+            "severity IN ('info', 'warning', 'critical')",
+            name="ck_alerts_severity",
+        ),
+        CheckConstraint("status IN ('active', 'resolved')", name="ck_alerts_status"),
+    )
+
+    id: Mapped[UUID] = mapped_column(
+        PostgreSQLUUID(as_uuid=True),
+        primary_key=True,
+        server_default=text("gen_random_uuid()"),
+    )
+    location_id: Mapped[UUID | None] = mapped_column(
+        PostgreSQLUUID(as_uuid=True),
+        ForeignKey("locations.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    device_id: Mapped[UUID | None] = mapped_column(
+        PostgreSQLUUID(as_uuid=True),
+        ForeignKey("devices.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    severity: Mapped[str] = mapped_column(String(16), nullable=False)
+    message: Mapped[str] = mapped_column(Text, nullable=False)
+    event_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    status: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="active", server_default=text("'active'")
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=text("now()")
+    )
+    acknowledged_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+
 class LocationRow(Base):
     __tablename__ = "locations"
 

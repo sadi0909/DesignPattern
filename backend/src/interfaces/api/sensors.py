@@ -9,6 +9,7 @@ from application.readings.service import ReadingService
 from application.sensors.service import SensorService
 from domain.devices.errors import DeviceNotFoundError
 from domain.sensors.errors import SensorReadError
+from infrastructure.events.composition import get_event_bus
 from infrastructure.persistence.device_repository import DeviceRepository
 from infrastructure.persistence.reading_repository import ReadingRepository
 from infrastructure.persistence.session import get_db
@@ -34,7 +35,11 @@ def get_service(db: Session = Depends(get_db)) -> SensorService:  # noqa: B008
 
 
 def get_reading_service(db: Session = Depends(get_db)) -> ReadingService:  # noqa: B008
-    return ReadingService(DeviceRepository(db), ReadingRepository(db))
+    return ReadingService(
+        DeviceRepository(db),
+        ReadingRepository(db),
+        events=get_event_bus(),
+    )
 
 
 @router.get("", response_model=list[SensorResponse])

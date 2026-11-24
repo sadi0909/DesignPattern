@@ -6,6 +6,8 @@ from domain.commands.errors import CommandRejectedError
 from domain.commands.log import CommandLog
 from domain.commands.registry import create_command
 from domain.devices.errors import DeviceNotFoundError
+from domain.events.bus import EventBus
+from domain.events.events import ActuatorStateChanged, CommandExecuted
 from infrastructure.persistence.actuator_state_repository import ActuatorStateRepository
 from infrastructure.persistence.command_log_repository import CommandLogRepository
 from infrastructure.persistence.device_repository import DeviceRepository
@@ -16,7 +18,8 @@ class CommandService:
 
     It resolves a command object, checks State and device compatibility, runs the
     existing decorated port, advances the lifecycle only after apply succeeds,
-    and records both successful and unsuccessful attempts in command_log.
+    records both successful and unsuccessful attempts in command_log, and
+    publishes the outcome without knowing which subscribers react to it.
     """
 
     def __init__(
@@ -25,11 +28,13 @@ class CommandService:
         states: ActuatorStateRepository,
         port: ActuatorPort,
         logs: CommandLogRepository,
+        events: EventBus | None = None,
     ) -> None:
         self._devices = devices
         self._states = states
         self._port = port
         self._logs = logs
+        self._events = events
 
     def submit(
         self,
@@ -51,6 +56,7 @@ class CommandService:
                 device_id,
                 command.payload,
                 f"{command.command_type} is not valid for {device.device_type}",
+                location_id=device.location_id,
             )
         if command.command_type not in context.allowed_commands():
             return self._reject(
@@ -58,6 +64,7 @@ class CommandService:
                 device_id,
                 command.payload,
                 f"{command.command_type} is not allowed in state {context.state_name}",
+                location_id=device.location_id,
             )
         if command.target_state is not None and not context.can_transition_to(command.target_state):
             return self._reject(
@@ -65,8 +72,10 @@ class CommandService:
                 device_id,
                 command.payload,
                 f"Cannot transition from {context.state_name} to {command.target_state}",
+                location_id=device.location_id,
             )
 
+        previous_state = context.state_name
         try:
             command.execute(self._port, device_id)
             if command.target_state is not None:
@@ -81,14 +90,41 @@ class CommandService:
                 status="failed",
                 error_message=message,
             )
+            self._publish(
+                CommandExecuted(
+                    device_id=device_id,
+                    location_id=device.location_id,
+                    command_type=command.command_type,
+                    status="failed",
+                    error_message=message,
+                )
+            )
             raise
 
-        return self._logs.record(
+        log = self._logs.record(
             command_type=command.command_type,
             device_id=device_id,
             payload=command.payload,
             status="success",
         )
+        self._publish(
+            CommandExecuted(
+                device_id=device_id,
+                location_id=device.location_id,
+                command_type=command.command_type,
+                status="success",
+            )
+        )
+        if command.target_state is not None:
+            self._publish(
+                ActuatorStateChanged(
+                    device_id=device_id,
+                    location_id=device.location_id,
+                    from_state=previous_state,
+                    to_state=context.state_name,
+                )
+            )
+        return log
 
     def list_commands(self, limit: int = 50) -> list[CommandLog]:
         return self._logs.list_recent(limit)
@@ -99,6 +135,8 @@ class CommandService:
         device_id: UUID,
         payload: dict[str, object],
         message: str,
+        *,
+        location_id: UUID | None = None,
     ) -> CommandLog:
         self._logs.record(
             command_type=command_type,
@@ -107,4 +145,17 @@ class CommandService:
             status="rejected",
             error_message=message,
         )
+        self._publish(
+            CommandExecuted(
+                device_id=device_id,
+                location_id=location_id,
+                command_type=command_type,
+                status="rejected",
+                error_message=message,
+            )
+        )
         raise CommandRejectedError(message)
+
+    def _publish(self, event: object) -> None:
+        if self._events is not None:
+            self._events.publish(event)

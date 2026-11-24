@@ -18,6 +18,7 @@ from domain.commands.errors import (
 )
 from domain.devices.errors import DeviceNotFoundError
 from infrastructure.adapters.actuators.composition import build_actuator_port
+from infrastructure.events.composition import get_event_bus
 from infrastructure.persistence.actuator_state_repository import ActuatorStateRepository
 from infrastructure.persistence.command_log_repository import CommandLogRepository
 from infrastructure.persistence.device_repository import DeviceRepository
@@ -45,6 +46,7 @@ def get_command_service(
         states,
         port,
         CommandLogRepository(db),
+        events=get_event_bus(),
     )
 
 

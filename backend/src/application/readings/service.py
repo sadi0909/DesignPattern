@@ -4,6 +4,8 @@ from uuid import UUID
 from application.readings.dto import ReadingDto
 from domain.devices.entity import Device
 from domain.devices.errors import DeviceNotFoundError
+from domain.events.bus import EventBus
+from domain.events.events import ReadingTaken
 from domain.sensors.ports import SensorPort
 from domain.sensors.reading import Reading
 from infrastructure.adapters.sensors.selector import select_sensor_adapter
@@ -25,16 +27,31 @@ class ReadingService:
         devices: DeviceRepository,
         readings: ReadingRepository,
         adapter_selector: AdapterFactory = select_sensor_adapter,
+        events: EventBus | None = None,
     ) -> None:
         self._devices = devices
         self._readings = readings
         self._adapter_selector = adapter_selector
+        self._events = events
 
     def take_reading(self, device_id: UUID) -> ReadingDto:
         device = self._require_device(device_id)
         port = self._adapter_selector(device)
         reading = port.read(device)  # adapter errors surface as SensorReadError
         persisted = self._readings.insert(reading)
+        if self._events is not None:
+            # Publish only after the reading is durable; subscribers may react
+            # to it (and open their own units of work) without changing the
+            # reading pipeline.
+            self._events.publish(
+                ReadingTaken(
+                    device_id=persisted.device_id,
+                    location_id=device.location_id,
+                    sensor_type=device.device_type,
+                    value=persisted.value,
+                    unit=persisted.unit,
+                )
+            )
         return self._to_dto(persisted)
 
     def list_readings(self, device_id: UUID, limit: int = 20) -> list[ReadingDto]:
