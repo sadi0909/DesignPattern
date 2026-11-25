@@ -61,14 +61,18 @@ def build_event_bus() -> EventBus:
         ThresholdCrossed,
         _SessionHandler(
             SessionLocal,
-            lambda session: AlertPersistenceSubscriber(AlertRepository(session)).handle,
+            lambda session: AlertPersistenceSubscriber(
+                AlertRepository(session), events=bus
+            ).handle,
         ),
     )
     bus.subscribe(
         CommandExecuted,
         _SessionHandler(
             SessionLocal,
-            lambda session: AlertPersistenceSubscriber(AlertRepository(session)).handle,
+            lambda session: AlertPersistenceSubscriber(
+                AlertRepository(session), events=bus
+            ).handle,
         ),
     )
     return bus

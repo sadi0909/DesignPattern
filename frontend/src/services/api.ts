@@ -93,10 +93,12 @@ export type LocationConfigDto = {
   }[];
 };
 
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "";
+// One base URL for REST and for the realtime module's ws:// derivation. Leave
+// it empty in development: Vite proxies `/api` (including the WebSocket).
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(`${apiBaseUrl}${path}`, {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
     headers: { "Content-Type": "application/json", ...options?.headers },
   });

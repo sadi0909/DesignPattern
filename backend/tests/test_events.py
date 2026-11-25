@@ -20,7 +20,12 @@ from domain.alerts.entity import Alert
 from domain.commands.log import CommandLog
 from domain.devices.entity import Device
 from domain.events.bus import EventBus
-from domain.events.events import CommandExecuted, ReadingTaken, ThresholdCrossed
+from domain.events.events import (
+    AlertCreated,
+    CommandExecuted,
+    ReadingTaken,
+    ThresholdCrossed,
+)
 from domain.locations.entity import Location, LocationConfig, Zone
 from domain.sensors.reading import Reading
 from infrastructure.db import SessionLocal
@@ -245,6 +250,30 @@ def test_unassigned_or_non_moisture_readings_do_not_alert():
     )
 
     assert alerts.alerts == []
+
+
+def test_persisted_alert_is_announced_for_realtime_subscribers():
+    config = _config(low=0.4, high=0.7)
+    bus = EventBus()
+    alerts = FakeAlertRepository()
+    announced: list[AlertCreated] = []
+    bus.subscribe(AlertCreated, announced.append)
+    bus.subscribe(
+        ReadingTaken,
+        MoistureThresholdSubscriber(FakeLocationRepository(config), bus).handle,
+    )
+    bus.subscribe(
+        ThresholdCrossed,
+        AlertPersistenceSubscriber(alerts, events=bus).handle,  # type: ignore[arg-type]
+    )
+
+    bus.publish(_reading_event(config.location.id, value=20.0))
+
+    assert len(alerts.alerts) == 1
+    assert len(announced) == 1
+    assert announced[0].alert_id == alerts.alerts[0].id
+    assert announced[0].event_type == "threshold.crossed"
+    assert announced[0].status == "active"
 
 
 def test_failed_command_persists_a_critical_alert_but_success_does_not():

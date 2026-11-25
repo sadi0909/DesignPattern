@@ -17,7 +17,7 @@ This project grows a smart greenhouse control system one phase at a time. Each p
 | 9 | Decorator — logging/policies wrapped around actuator execution | ✅ Done |
 | 10 | Command — encapsulated actuator actions, command history | ✅ Done |
 | 11 | Observer — in-process event bus, alerts, event feed | ✅ Done |
-| 12 | API / WS / hardening — production `/api`, WebSocket fan-out, indexes, seeds | ⬜ |
+| 12 | API / WS / hardening — production `/api`, WebSocket fan-out, indexes, seeds | ✅ Done |
 
 ## Optional enrichment (Phases 13–14)
 
@@ -30,4 +30,5 @@ This project grows a smart greenhouse control system one phase at a time. Each p
 
 - Phase answers: [`QuestionsAnswers/`](../../QuestionsAnswers/)
 - Pattern reflections (Phase 2 onward): `docs/patterns/`
+- Schema, FK policies, and realtime notes: [`docs/schema.md`](../schema.md)
 - Course materials: per-phase guide, requirements, and guided check documents.

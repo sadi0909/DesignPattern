@@ -54,6 +54,24 @@ class ThresholdCrossed(DomainEvent):
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
+class AlertCreated(DomainEvent):
+    """An alert row was committed and is now visible through ``GET /api/alerts``.
+
+    Published by the persistence subscriber after the insert, never by the
+    producer, so realtime listeners only ever announce durable alerts.
+    """
+
+    alert_id: UUID
+    location_id: UUID | None
+    device_id: UUID | None
+    severity: Severity
+    message: str
+    event_type: str
+    status: str
+    created_at: datetime
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
 class CommandExecuted(DomainEvent):
     """An operator command finished, failed, or was rejected before execution."""
 

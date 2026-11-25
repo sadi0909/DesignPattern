@@ -1,5 +1,6 @@
 import { Outlet, Link, useLocation } from "react-router-dom";
 import { HealthStatus } from "./HealthStatus";
+import { RealtimeStatusBadge } from "./RealtimeStatusBadge";
 
 export function AppLayout() {
   const location = useLocation();
@@ -36,7 +37,10 @@ export function AppLayout() {
                 </Link>
               </nav>
             </div>
-            <HealthStatus />
+            <div className="flex items-center gap-3">
+              <RealtimeStatusBadge />
+              <HealthStatus />
+            </div>
           </div>
         </div>
       </header>

@@ -137,8 +137,12 @@ class AlertRow(Base):
     __tablename__ = "alerts"
     __table_args__ = (
         Index("ix_alerts_created_at", text("created_at DESC")),
-        Index("ix_alerts_status", "status"),
-        Index("ix_alerts_location_id", "location_id"),
+        Index("ix_alerts_status_created_at", "status", text("created_at DESC")),
+        Index(
+            "ix_alerts_location_id_created_at",
+            "location_id",
+            text("created_at DESC"),
+        ),
         Index("ix_alerts_device_id", "device_id"),
         CheckConstraint(
             "severity IN ('info', 'warning', 'critical')",

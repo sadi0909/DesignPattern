@@ -6,8 +6,14 @@ publisher would need zone configuration and alert persistence, which is the
 coupling Observer is meant to remove.
 """
 
+from domain.alerts.entity import Alert
 from domain.events.bus import EventBus
-from domain.events.events import CommandExecuted, ReadingTaken, ThresholdCrossed
+from domain.events.events import (
+    AlertCreated,
+    CommandExecuted,
+    ReadingTaken,
+    ThresholdCrossed,
+)
 from infrastructure.persistence.alert_repository import AlertRepository
 from infrastructure.persistence.location_repository import LocationRepository
 
@@ -74,8 +80,9 @@ class AlertPersistenceSubscriber:
     is a separate operator-visible incident.
     """
 
-    def __init__(self, alerts: AlertRepository) -> None:
+    def __init__(self, alerts: AlertRepository, events: EventBus | None = None) -> None:
         self._alerts = alerts
+        self._events = events
 
     def handle(self, event: object) -> None:
         if isinstance(event, ThresholdCrossed):
@@ -87,7 +94,7 @@ class AlertPersistenceSubscriber:
         if self._alerts.has_active(event.device_id, THRESHOLD_EVENT_TYPE):
             return
         label = "low" if event.direction == "below" else "high"
-        self._alerts.record(
+        alert = self._alerts.record(
             location_id=event.location_id,
             device_id=event.device_id,
             severity=event.severity,
@@ -97,15 +104,34 @@ class AlertPersistenceSubscriber:
             ),
             event_type=THRESHOLD_EVENT_TYPE,
         )
+        self._publish_created(alert)
 
     def _on_command_failed(self, event: CommandExecuted) -> None:
         message = f"Command {event.command_type} failed"
         if event.error_message:
             message = f"{message}: {event.error_message}"
-        self._alerts.record(
+        alert = self._alerts.record(
             location_id=event.location_id,
             device_id=event.device_id,
             severity="critical",
             message=message,
             event_type=COMMAND_FAILED_EVENT_TYPE,
+        )
+        self._publish_created(alert)
+
+    def _publish_created(self, alert: Alert) -> None:
+        """Announce the row only after it is committed so listeners can read it."""
+        if self._events is None:
+            return
+        self._events.publish(
+            AlertCreated(
+                alert_id=alert.id,
+                location_id=alert.location_id,
+                device_id=alert.device_id,
+                severity=alert.severity,
+                message=alert.message,
+                event_type=alert.event_type,
+                status=alert.status,
+                created_at=alert.created_at,
+            )
         )

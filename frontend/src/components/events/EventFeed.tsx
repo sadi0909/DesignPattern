@@ -4,9 +4,11 @@ import {
   type AlertDto,
   type AlertSeverity,
 } from "../../services/api";
+import { subscribeRealtime } from "../../services/realtime";
 
-// Phase 11 polls; Phase 12 replaces this with the realtime subscription.
-const POLL_INTERVAL_MS = 5000;
+// WebSocket pushes new alerts immediately; this slower GET reconciles any
+// events missed while the socket was down or reconnecting.
+const FALLBACK_POLL_MS = 30000;
 
 const severityStyles: Record<AlertSeverity, string> = {
   info: "bg-sky-100 text-sky-800",
@@ -42,9 +44,26 @@ export function EventFeed() {
 
   useEffect(() => {
     void load();
-    const timer = window.setInterval(() => void load(), POLL_INTERVAL_MS);
+    const timer = window.setInterval(() => void load(), FALLBACK_POLL_MS);
     return () => window.clearInterval(timer);
   }, [load]);
+
+  useEffect(
+    () =>
+      subscribeRealtime((event) => {
+        if (event.type !== "alert.created") return;
+        const alert = event.payload as AlertDto | null;
+        if (!alert || typeof alert.id !== "string" || alert.status !== "active") {
+          return;
+        }
+        setAlerts((current) => {
+          if (current.some((row) => row.id === alert.id)) return current;
+          return [alert, ...current].slice(0, 50);
+        });
+        setLastUpdated(new Date());
+      }),
+    [],
+  );
 
   return (
     <div className="mt-4 rounded-lg bg-slate-50 p-4">
@@ -52,7 +71,7 @@ export function EventFeed() {
         <div>
           <h3 className="text-sm font-semibold text-slate-800">Active alerts</h3>
           <p className="text-xs text-slate-500">
-            Polling every 5 seconds. Live push arrives in Phase 12.
+            Live over WebSocket; GET /api/alerts every 30 seconds reconciles missed events.
             {lastUpdated && ` Last updated ${lastUpdated.toLocaleTimeString()}.`}
           </p>
         </div>

@@ -26,6 +26,7 @@ python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -e ".[dev]"
 alembic upgrade head
+python seed.py  # optional: idempotent demo location, devices, and reading
 
 # 4. Frontend setup
 cd ../frontend
@@ -61,6 +62,31 @@ npm run dev
 | Backend API | http://localhost:8000 |
 | Scalar API Reference | http://localhost:8000/scalar |
 | OpenAPI Schema | http://localhost:8000/openapi.json |
+| WebSocket feed | ws://localhost:8000/api/ws |
+
+## API and realtime
+
+- All REST resources used by the UI live under `/api/...` (health stays at `/health`).
+- `WS /api/ws` streams the same domain events the Phase 11 bus publishes.
+  Messages are JSON envelopes: `{ "type": "alert.created", "payload": { ... } }`.
+  Supported types: `reading.created`, `actuator.state_changed`, `alert.created`.
+- The dashboard header shows the socket state (`connected` / `connecting` / `down`).
+  `EventFeed` applies pushed alerts immediately and keeps a 30-second GET poll as
+  a fallback; the socket is read-only, alerts are still persisted by the Observer
+  subscriber.
+
+Smoke test the feed from the browser console:
+
+```js
+const ws = new WebSocket("ws://localhost:8000/api/ws");
+ws.onmessage = (event) => console.log(JSON.parse(event.data));
+```
+
+Trigger a reading in the dashboard (or `POST /api/sensors/{id}/read`) and the
+console should print `reading.created` before the UI refreshes.
+
+See [docs/schema.md](docs/schema.md) for the migration chain, indexing, FK
+`ON DELETE` policies, and the idempotent seed.
 
 ## Quality Checks
 
@@ -78,7 +104,7 @@ npm run build
 
 ## Documentation
 
-See [docs/phases/README.md](docs/phases/README.md) for phase-by-phase development guide.
+See [docs/phases/README.md](docs/phases/README.md) for the phase-by-phase development guide and [docs/schema.md](docs/schema.md) for the schema and realtime notes.
 
 ## Environment Variables
 
