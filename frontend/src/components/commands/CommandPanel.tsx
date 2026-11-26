@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Skeleton } from "../../components/ui/Skeleton";
 import {
   executeCommand,
   fetchCommands,
@@ -9,9 +10,9 @@ import {
 } from "../../services/api";
 
 const statusStyles: Record<CommandStatus, string> = {
-  success: "bg-emerald-100 text-emerald-800",
-  failed: "bg-red-100 text-red-800",
-  rejected: "bg-amber-100 text-amber-800",
+  success: "bg-ok-100 text-ok-800",
+  failed: "bg-error-100 text-error-800",
+  rejected: "bg-warn-100 text-warn-800",
 };
 
 function formatTime(value: string) {
@@ -63,6 +64,14 @@ export function CommandPanel() {
 
   async function submit(commandType: string) {
     if (!selected) return;
+    if (
+      commandType === "start_pump" &&
+      !window.confirm(
+        "Start the pump now? It will run until you stop it or an active policy intervenes.",
+      )
+    ) {
+      return;
+    }
     setSubmitting(true);
     setNotice(null);
     setError(null);
@@ -141,7 +150,7 @@ export function CommandPanel() {
             type="button"
             onClick={() => void submit("start_pump")}
             disabled={submitting || !isPump || !allowed.includes("start_pump")}
-            className="rounded-md bg-emerald-600 px-3 py-2 text-xs font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-md bg-ok-600 px-3 py-2 text-xs font-medium text-white hover:bg-ok-700 disabled:cursor-not-allowed disabled:opacity-40"
           >
             {submitting ? "Sending…" : "Start pump"}
           </button>
@@ -178,7 +187,7 @@ export function CommandPanel() {
       <div id="commands" className="mt-4">
         <h3 className="mb-2 text-sm font-semibold text-slate-800">Command history</h3>
         {loading ? (
-          <p className="text-sm text-slate-500">Loading command history…</p>
+          <Skeleton rows={3} />
         ) : commands.length === 0 ? (
           <p className="text-sm text-slate-500">No commands have been submitted yet.</p>
         ) : (

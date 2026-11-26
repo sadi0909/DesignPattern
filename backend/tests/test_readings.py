@@ -5,7 +5,7 @@ the real PostgreSQL database when RUN_DB_INTEGRATION=1.
 """
 
 import os
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
 import pytest
@@ -176,6 +176,22 @@ class InMemoryReadingRepository:
         matching.sort(key=lambda row: row.recorded_at, reverse=True)
         return matching[:limit]
 
+    def list_for_device_between(
+        self,
+        device_id: UUID,
+        *,
+        start: datetime | None = None,
+        end: datetime | None = None,
+        limit: int = 500,
+    ) -> list[Reading]:
+        matching = [row for row in self.rows if row.device_id == device_id]
+        if start is not None:
+            matching = [row for row in matching if row.recorded_at >= start]
+        if end is not None:
+            matching = [row for row in matching if row.recorded_at <= end]
+        matching.sort(key=lambda row: row.recorded_at)
+        return matching[:limit]
+
 
 def _override(devices: list[Device], selector=None) -> InMemoryReadingRepository:
     readings = InMemoryReadingRepository()
@@ -214,6 +230,46 @@ def test_read_api_returns_normalized_dto_and_history():
             history = client.get(f"/api/sensors/{device.id}/readings?limit=1")
             assert history.status_code == 200
             assert len(history.json()) == 1
+    finally:
+        app.dependency_overrides.pop(get_reading_service, None)
+
+
+def test_readings_range_filters_and_returns_oldest_first():
+    device = _device()
+    readings = InMemoryReadingRepository()
+    base = datetime(2026, 1, 1, 12, 0, tzinfo=UTC)
+    readings.rows = [
+        Reading(
+            device_id=device.id,
+            value=float(index),
+            unit="percent",
+            source="simulation",
+            recorded_at=base + timedelta(minutes=index),
+        )
+        for index in range(5)
+    ]
+    service = ReadingService(InMemoryDeviceRepository([device]), readings)
+    app.dependency_overrides[get_reading_service] = lambda: service
+    try:
+        with TestClient(app) as client:
+            response = client.get(
+                f"/api/sensors/{device.id}/readings",
+                params={
+                    "from": (base + timedelta(minutes=1)).isoformat(),
+                    "to": (base + timedelta(minutes=3)).isoformat(),
+                },
+            )
+            assert response.status_code == 200
+            assert [row["value"] for row in response.json()] == [1.0, 2.0, 3.0]
+
+            invalid = client.get(
+                f"/api/sensors/{device.id}/readings",
+                params={
+                    "from": (base + timedelta(minutes=3)).isoformat(),
+                    "to": base.isoformat(),
+                },
+            )
+            assert invalid.status_code == 400
     finally:
         app.dependency_overrides.pop(get_reading_service, None)
 

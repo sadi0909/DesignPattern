@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Skeleton } from "../../components/ui/Skeleton";
 import {
   ACTIVE_LOCATION_STORAGE_KEY,
   evaluateAutomation,
@@ -133,7 +134,7 @@ export function StrategyPanel() {
           Save a location configuration first, or paste an existing location ID above.
         </p>
       ) : loading ? (
-        <p className="text-sm text-slate-500">Loading strategy…</p>
+        <Skeleton rows={3} />
       ) : rule ? (
         <div className="space-y-4">
           <div>
@@ -195,12 +196,12 @@ export function StrategyPanel() {
       ) : null}
 
       {error && (
-        <p className="mt-3 rounded-md bg-red-50 p-3 text-sm text-red-700" role="alert">
+        <p className="mt-3 rounded-md bg-error-50 p-3 text-sm text-error-700" role="alert">
           {error}
         </p>
       )}
       {success && (
-        <p className="mt-3 rounded-md bg-emerald-50 p-3 text-sm text-emerald-800" role="status">
+        <p className="mt-3 rounded-md bg-ok-50 p-3 text-sm text-ok-800" role="status">
           {success}
         </p>
       )}

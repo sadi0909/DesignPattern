@@ -144,9 +144,18 @@ export function readSensor(sensorId: string): Promise<ReadingDto> {
   });
 }
 
-export function fetchSensorReadings(sensorId: string, limit = 20): Promise<ReadingDto[]> {
+export type ReadingRange = { from?: string; to?: string };
+
+export function fetchSensorReadings(
+  sensorId: string,
+  limit = 20,
+  range: ReadingRange = {},
+): Promise<ReadingDto[]> {
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (range.from) params.set("from", range.from);
+  if (range.to) params.set("to", range.to);
   return request<ReadingDto[]>(
-    `/api/sensors/${encodeURIComponent(sensorId)}/readings?limit=${limit}`,
+    `/api/sensors/${encodeURIComponent(sensorId)}/readings?${params.toString()}`,
   );
 }
 

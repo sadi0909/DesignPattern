@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Skeleton } from "../../components/ui/Skeleton";
 import {
   fetchActuatorExecutions,
   fetchDevices,
@@ -56,13 +57,13 @@ export function ExecutionLog() {
       </div>
 
       {error && (
-        <p className="mt-3 text-sm text-red-600" role="alert">
+        <p className="mt-3 text-sm text-error-600" role="alert">
           {error}
         </p>
       )}
 
       {loading ? (
-        <p className="mt-4 text-sm text-slate-500">Loading executions…</p>
+        <Skeleton rows={3} className="mt-4" />
       ) : executions.length === 0 ? (
         <p className="mt-4 text-sm text-slate-500">
           No actuator executions yet. Run a command from Controls to create the first entry.
@@ -92,8 +93,8 @@ export function ExecutionLog() {
                     <span
                       className={`rounded-full px-2 py-1 font-medium ${
                         execution.success
-                          ? "bg-emerald-100 text-emerald-800"
-                          : "bg-red-100 text-red-800"
+                          ? "bg-ok-100 text-ok-800"
+                          : "bg-error-100 text-error-800"
                       }`}
                     >
                       {execution.success ? "success" : "failed"}

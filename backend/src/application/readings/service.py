@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from datetime import datetime
 from uuid import UUID
 
 from application.readings.dto import ReadingDto
@@ -54,9 +55,22 @@ class ReadingService:
             )
         return self._to_dto(persisted)
 
-    def list_readings(self, device_id: UUID, limit: int = 20) -> list[ReadingDto]:
+    def list_readings(
+        self,
+        device_id: UUID,
+        limit: int = 20,
+        start: datetime | None = None,
+        end: datetime | None = None,
+    ) -> list[ReadingDto]:
+        """Return newest-first history, or oldest-first rows for a time window."""
         self._require_device(device_id)
-        return [self._to_dto(reading) for reading in self._readings.list_for_device(device_id, limit=limit)]
+        if start is None and end is None:
+            readings = self._readings.list_for_device(device_id, limit=limit)
+        else:
+            readings = self._readings.list_for_device_between(
+                device_id, start=start, end=end, limit=limit
+            )
+        return [self._to_dto(reading) for reading in readings]
 
     def _require_device(self, device_id: UUID) -> Device:
         device = self._devices.get_device(device_id)

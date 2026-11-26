@@ -12,7 +12,7 @@ export type RealtimeEvent = { type: string; payload: unknown };
 export type RealtimeHandler = (event: RealtimeEvent) => void;
 export type RealtimeStatus = "connected" | "connecting" | "down";
 
-const RECONNECT_DELAYS_MS = [500, 1000, 2000, 5000, 10000];
+const MAX_RECONNECT_DELAY_MS = 15000;
 
 let socket: WebSocket | null = null;
 let status: RealtimeStatus = "down";
@@ -46,8 +46,7 @@ function realtimeUrl(): string {
 function scheduleReconnect() {
   if (reconnectTimer !== null) return;
   if (eventHandlers.size + statusHandlers.size === 0) return;
-  const delay =
-    RECONNECT_DELAYS_MS[Math.min(reconnectAttempt, RECONNECT_DELAYS_MS.length - 1)];
+  const delay = Math.min(1000 * 2 ** reconnectAttempt, MAX_RECONNECT_DELAY_MS);
   reconnectAttempt += 1;
   reconnectTimer = window.setTimeout(() => {
     reconnectTimer = null;

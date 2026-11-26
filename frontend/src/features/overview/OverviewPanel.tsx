@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Skeleton } from "../../components/ui/Skeleton";
 import { ACTIVE_LOCATION_STORAGE_KEY, fetchOverview, type LocationOverviewDto } from "../../services/api";
 
 export function OverviewPanel() {
@@ -8,22 +9,36 @@ export function OverviewPanel() {
   const [overview, setOverview] = useState<LocationOverviewDto | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 30000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     if (!locationId) {
       setOverview(null);
       setError(null);
       setLoading(false);
+      setUpdatedAt(null);
       return;
     }
     let cancelled = false;
     setOverview(null);
     setError(null);
+    setUpdatedAt(null);
     setLoading(true);
     // Defer the request so React StrictMode's development-only setup/cleanup does not fetch twice.
     const timer = window.setTimeout(() => {
       fetchOverview(locationId)
-        .then((result) => { if (!cancelled) setOverview(result); })
+        .then((result) => {
+          if (!cancelled) {
+            setOverview(result);
+            setUpdatedAt(new Date());
+          }
+        })
         .catch((err: unknown) => {
           if (!cancelled) setError(err instanceof Error ? err.message : "Unable to load overview.");
         })
@@ -50,11 +65,23 @@ export function OverviewPanel() {
         <button type="submit" className="rounded-md border border-emerald-600 px-3 py-2 text-sm text-emerald-700">Load / refresh</button>
       </form>
       {!locationId && <p className="text-sm text-slate-500">Save a location configuration or enter its ID to see its overview.</p>}
-      {loading && <p className="text-sm text-slate-500" role="status">Loading overview…</p>}
-      {error && <p className="rounded-md bg-red-50 p-3 text-sm text-red-700" role="alert">{error}</p>}
+      {loading && <Skeleton rows={3} />}
+      {error && <p className="rounded-md bg-error-50 p-3 text-sm text-error-700" role="alert">{error}</p>}
       {overview && (
         <div className="space-y-3" aria-live="polite">
-          <h3 className="font-semibold text-slate-900">{overview.location.name}</h3>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h3 className="font-semibold text-slate-900">{overview.location.name}</h3>
+            <p
+              className={`text-xs ${
+                updatedAt !== null && now - updatedAt.getTime() > 120000
+                  ? "font-medium text-warn-700"
+                  : "text-slate-500"
+              }`}
+            >
+              {updatedAt !== null && now - updatedAt.getTime() > 120000 ? "Stale data — " : ""}
+              Updated {updatedAt ? updatedAt.toLocaleTimeString() : "just now"}
+            </p>
+          </div>
           <p className="text-xs text-slate-500">Only devices assigned to this location are included.</p>
           <section className="rounded-md bg-slate-50 p-3 text-sm">
             <h4 className="font-semibold">Devices</h4>

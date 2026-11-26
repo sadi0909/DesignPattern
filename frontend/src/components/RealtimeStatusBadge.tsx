@@ -11,18 +11,18 @@ const statusStyles: Record<
 > = {
   connected: {
     label: "connected",
-    badge: "bg-emerald-100 text-emerald-700",
-    dot: "bg-emerald-500",
+    badge: "bg-ok-100 text-ok-700",
+    dot: "bg-ok-500",
   },
   connecting: {
     label: "connecting",
-    badge: "bg-amber-100 text-amber-700",
-    dot: "bg-amber-500",
+    badge: "bg-warn-100 text-warn-700",
+    dot: "bg-warn-500",
   },
   down: {
     label: "down",
-    badge: "bg-red-100 text-red-700",
-    dot: "bg-red-500",
+    badge: "bg-error-100 text-error-700",
+    dot: "bg-error-500",
   },
 };
 

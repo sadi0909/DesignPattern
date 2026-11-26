@@ -1,8 +1,9 @@
-# Schema and realtime notes (Phase 12)
+# Schema and realtime notes (Phases 12–13)
 
 Phase 12 hardens the schema that grew in Phases 2–11 and documents the live
 feed. No Phase 2–11 revision was edited; hardening is a new revision at the
-end of the chain.
+end of the chain. Phase 13 adds no schema revision: historical chart queries
+reuse the existing per-device reading index.
 
 ## Migration chain
 
@@ -27,7 +28,7 @@ end of the chain.
 
 | Table | Index | Used by |
 |-------|-------|---------|
-| `sensor_readings` | `(device_id, recorded_at DESC)` | per-sensor history and latest moisture |
+| `sensor_readings` | `(device_id, recorded_at DESC)` | per-sensor history, chart ranges, and latest moisture |
 | `alerts` | `(status, created_at DESC)` | active/resolved feed, newest first |
 | `alerts` | `(location_id, created_at DESC)` | location-scoped feed |
 | `alerts` | `(created_at DESC)` | unfiltered feed |
@@ -38,6 +39,12 @@ end of the chain.
 The Phase 12 revision replaces the old single-column `alerts(status)` and
 `alerts(location_id)` indexes with composites that also order by newest
 `created_at`.
+
+Phase 13 charts call
+`GET /api/sensors/{id}/readings?from=<iso>&to=<iso>`. The range filter and the
+oldest-first ordering are both served by
+`ix_sensor_readings_device_id_recorded_at`; Postgres can scan the index
+backwards, so no chart-specific index or migration is needed.
 
 ## Foreign key delete behavior
 

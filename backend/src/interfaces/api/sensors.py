@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -88,11 +89,36 @@ def read_sensor(
 )
 def list_sensor_readings(
     sensor_id: UUID,
-    limit: int = Query(20, ge=1, le=100),
+    limit: int = Query(20, ge=1, le=500),
+    from_: datetime | None = Query(  # noqa: B008
+        None,
+        alias="from",
+        description="Only readings at or after this ISO-8601 timestamp",
+    ),
+    to: datetime | None = Query(  # noqa: B008
+        None, description="Only readings at or before this ISO-8601 timestamp"
+    ),
     service: ReadingService = Depends(get_reading_service),  # noqa: B008
 ) -> list[ReadingDto]:
-    """Return recent persisted readings for one sensor device."""
+    """Return persisted readings for one sensor device.
+
+    Without `from`/`to` the newest rows come first (history panel). With a
+    time window the rows are oldest first so charts plot left to right.
+    """
+    start = _ensure_utc(from_)
+    end = _ensure_utc(to)
+    if start is not None and end is not None and start > end:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="from must be earlier than to",
+        )
     try:
-        return service.list_readings(sensor_id, limit=limit)
+        return service.list_readings(sensor_id, limit=limit, start=start, end=end)
     except DeviceNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+
+def _ensure_utc(value: datetime | None) -> datetime | None:
+    if value is not None and value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value

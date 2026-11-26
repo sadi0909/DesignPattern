@@ -47,7 +47,7 @@ export function HealthStatus() {
   }, []);
 
   if (loading) return <span className="inline-flex items-center gap-1.5 text-sm text-slate-500">Checking…</span>;
-  if (error || !health) return <span className="inline-flex items-center gap-1.5 text-sm text-red-600">API: unreachable</span>;
+  if (error || !health) return <span className="inline-flex items-center gap-1.5 text-sm text-error-600">API: unreachable</span>;
 
   // Tailwind v4 scans source text for class names, so full class strings are written out
   // instead of building them dynamically (bg-${color}-100 would never be generated).
@@ -58,14 +58,14 @@ export function HealthStatus() {
     <span className="inline-flex items-center gap-2 text-sm font-medium">
       <span
         className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-          apiOk ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
+          apiOk ? "bg-ok-100 text-ok-700" : "bg-warn-100 text-warn-700"
         }`}
       >
         API: {health.status}
       </span>
       <span
         className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-          dbOk ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"
+          dbOk ? "bg-ok-100 text-ok-700" : "bg-error-100 text-error-700"
         }`}
       >
         DB: {health.db}

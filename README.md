@@ -88,6 +88,20 @@ console should print `reading.created` before the UI refreshes.
 See [docs/schema.md](docs/schema.md) for the migration chain, indexing, FK
 `ON DELETE` policies, and the idempotent seed.
 
+## Dashboard polish (Phase 13, optional)
+
+- `GET /api/sensors/{id}/readings?from=<iso>&to=<iso>` returns readings
+  oldest-first for a chart window; without `from`/`to` it stays newest-first
+  for the history panel.
+- The dashboard adds a historical moisture trend chart, a 12-reading sparkline
+  on each sensor card, an active/all alert filter with severity sorting,
+  loading skeletons, a route-level error boundary, and reconnect backoff
+  capped at 15 seconds.
+- The existing `sensor_readings (device_id, recorded_at DESC)` index covers
+  chart range queries, so Phase 13 adds no migration.
+- Deferred in this phase: editing an existing location configuration, and
+  resolving alerts (this build has no `PATCH /api/alerts/{id}`).
+
 ## Quality Checks
 
 ```bash

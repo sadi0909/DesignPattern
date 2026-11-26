@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Skeleton } from "../../components/ui/Skeleton";
 import {
   fetchDevices,
   provisionDeviceFamily,
@@ -11,9 +12,9 @@ import { DeviceFamilySwitcher } from "./DeviceFamilySwitcher";
 const stateStyles: Record<ActuatorState, string> = {
   off: "bg-slate-200 text-slate-800",
   idle: "bg-slate-100 text-slate-700",
-  running: "bg-emerald-100 text-emerald-800",
-  error: "bg-red-100 text-red-800",
-  maintenance: "bg-amber-100 text-amber-800",
+  running: "bg-ok-100 text-ok-800",
+  error: "bg-error-100 text-error-800",
+  maintenance: "bg-warn-100 text-warn-800",
 };
 
 export function DeviceList() {
@@ -60,13 +61,13 @@ export function DeviceList() {
         type="button"
         onClick={() => void handleProvision()}
         disabled={provisioning}
-        className="mb-4 rounded-md bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+        className="mb-4 rounded-md bg-ok-600 px-3 py-2 text-sm font-medium text-white hover:bg-ok-700 disabled:opacity-50"
       >
         {provisioning ? "Provisioning…" : `Provision ${family} kit`}
       </button>
-      {error && <p className="mb-3 text-sm text-red-600" role="alert">{error}</p>}
+      {error && <p className="mb-3 text-sm text-error-600" role="alert">{error}</p>}
       {loading ? (
-        <p className="text-sm text-slate-500">Loading devices…</p>
+        <Skeleton rows={4} />
       ) : devices.length === 0 ? (
         <p className="text-sm text-slate-500">No {family} devices yet. Provision a kit above.</p>
       ) : (

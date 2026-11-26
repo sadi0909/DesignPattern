@@ -21,10 +21,23 @@ This project grows a smart greenhouse control system one phase at a time. Each p
 
 ## Optional enrichment (Phases 13–14)
 
-| Phase | Topic |
-|-------|-------|
-| 13 | Dashboard polish — loading/empty/error states, charts from historical readings |
-| 14 | Tests & demo — test pyramid on pattern seams, integration tests, `docs/patterns/` reflections |
+| Phase | Topic | Status |
+|-------|-------|--------|
+| 13 | Dashboard polish — loading/empty/error states, charts from historical readings | ✅ Done (optional) |
+| 14 | Tests & demo — test pyramid on pattern seams, integration tests, `docs/patterns/` reflections | Not started |
+
+## Phase 13 notes (optional)
+
+Implemented: a historical moisture chart fed by
+`GET /api/sensors/{id}/readings?from=&to=`, 12-reading sparklines on sensor
+cards, an active/all alert filter with severity sorting, loading skeletons,
+a route-level error boundary, and exponential WebSocket backoff capped at
+15 seconds.
+
+Deferred: editing an existing location configuration (the wizard still creates
+only), and resolving alerts from the UI (no `PATCH /api/alerts/{id}` route in
+this build). The chart needs no new index; the existing
+`sensor_readings (device_id, recorded_at DESC)` index supports the range scan.
 
 ## Where things live
 

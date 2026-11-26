@@ -1,3 +1,4 @@
+from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy import func, select
@@ -38,6 +39,30 @@ class ReadingRepository:
             .where(ReadingRow.device_id == device_id)
             .order_by(ReadingRow.recorded_at.desc(), ReadingRow.id.desc())
             .limit(limit)
+        ).all()
+        return [self._to_domain(row) for row in rows]
+
+    def list_for_device_between(
+        self,
+        device_id: UUID,
+        *,
+        start: datetime | None = None,
+        end: datetime | None = None,
+        limit: int = 500,
+    ) -> list[Reading]:
+        """Read one device's history inside an optional window, oldest first.
+
+        Chart-friendly ordering: the Phase 13 trend chart plots left to right.
+        The existing `(device_id, recorded_at DESC)` index still supports the
+        filter because Postgres can scan an index backwards.
+        """
+        query = select(ReadingRow).where(ReadingRow.device_id == device_id)
+        if start is not None:
+            query = query.where(ReadingRow.recorded_at >= start)
+        if end is not None:
+            query = query.where(ReadingRow.recorded_at <= end)
+        rows = self._session.scalars(
+            query.order_by(ReadingRow.recorded_at.asc(), ReadingRow.id.asc()).limit(limit)
         ).all()
         return [self._to_domain(row) for row in rows]
 
