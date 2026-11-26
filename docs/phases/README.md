@@ -24,7 +24,7 @@ This project grows a smart greenhouse control system one phase at a time. Each p
 | Phase | Topic | Status |
 |-------|-------|--------|
 | 13 | Dashboard polish — loading/empty/error states, charts from historical readings | ✅ Done (optional) |
-| 14 | Tests & demo — test pyramid on pattern seams, integration tests, `docs/patterns/` reflections | Not started |
+| 14 | Tests & demo — test pyramid on pattern seams, integration tests, `docs/patterns/` reflections | ✅ Done (optional) |
 
 ## Phase 13 notes (optional)
 
@@ -38,6 +38,27 @@ Deferred: editing an existing location configuration (the wizard still creates
 only), and resolving alerts from the UI (no `PATCH /api/alerts/{id}` route in
 this build). The chart needs no new index; the existing
 `sensor_readings (device_id, recorded_at DESC)` index supports the range scan.
+
+## Phase 14 notes (optional)
+
+Implemented without production-code changes:
+
+- `backend/tests/test_demo_flow.py` — the demo narrative as one PostgreSQL test:
+  dry location, device family, sensor read, unordered WebSocket pair
+  (`reading.created` + `alert.created`), pump start (`actuator.state_changed`),
+  then history, range, overview, alert, and command checks plus a fresh client.
+- `backend/tests/test_migrations.py` — one linear revision graph (parsed from
+  `alembic/versions/`, because `backend/alembic` shadows the installed package),
+  then `upgrade head` twice and `downgrade base` on a scratch database.
+- [`docs/testing.md`](../testing.md) — test pyramid, seam-to-test map, commands,
+  and uncovered areas.
+- [`docs/demo.md`](../demo.md) — five-minute walkthrough and talk track.
+- [`docs/patterns/README.md`](../patterns/README.md) — index of the ten pattern
+  notes with their seams and proving tests.
+
+The suite runs with or without PostgreSQL; database tests are gated by
+`RUN_DB_INTEGRATION=1`. The frontend has no automated renderer tests; it is
+verified by `npm run build` and the manual demo.
 
 ## Where things live
 

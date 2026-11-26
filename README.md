@@ -102,13 +102,28 @@ See [docs/schema.md](docs/schema.md) for the migration chain, indexing, FK
 - Deferred in this phase: editing an existing location configuration, and
   resolving alerts (this build has no `PATCH /api/alerts/{id}`).
 
+## Tests & demo (Phase 14, optional)
+
+- `backend/tests/test_demo_flow.py` runs the demo story as one PostgreSQL test
+  over HTTP and WebSocket: dry zone, reading, alert, pump start, then history,
+  range, overview, and command checks.
+- `backend/tests/test_migrations.py` asserts one linear Alembic head and runs
+  `upgrade head` twice plus `downgrade base` on a scratch database.
+- The test pyramid, pattern-seam map, and commands are in
+  [docs/testing.md](docs/testing.md).
+- A five-minute walkthrough and talk track are in [docs/demo.md](docs/demo.md).
+- [docs/patterns/README.md](docs/patterns/README.md) indexes the ten pattern
+  reflections with their seams and proving tests.
+
 ## Quality Checks
 
 ```bash
 # Backend tests & lint
 cd backend
 .venv\Scripts\Activate.ps1
-python -m pytest tests/ -v
+python -m pytest tests/ -v                      # unit + API; DB tests skipped
+$env:RUN_DB_INTEGRATION = "1"                   # Git Bash: RUN_DB_INTEGRATION=1
+python -m pytest tests/ -v                      # + PostgreSQL, WS flow, migrations
 python -m ruff check src tests alembic
 
 # Frontend type-check & build
@@ -118,7 +133,7 @@ npm run build
 
 ## Documentation
 
-See [docs/phases/README.md](docs/phases/README.md) for the phase-by-phase development guide and [docs/schema.md](docs/schema.md) for the schema and realtime notes.
+See [docs/phases/README.md](docs/phases/README.md) for the phase-by-phase development guide, [docs/schema.md](docs/schema.md) for the schema and realtime notes, [docs/testing.md](docs/testing.md) for the test pyramid, [docs/demo.md](docs/demo.md) for the walkthrough, and [docs/patterns/README.md](docs/patterns/README.md) for the pattern index.
 
 ## Environment Variables
 
